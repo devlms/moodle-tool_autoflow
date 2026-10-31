@@ -13,7 +13,7 @@
 
 Build Moodle automations as workflows in a node editor, instead of writing a new plugin for every one.
 
-> **Status: alpha.** The test and release setup is in place and the engine is being built. Do not use it on a production site yet.
+> **Status: alpha.** Workflows can be built, saved and run, and every layer is tested. The node library is small for now. Try it on a test site, not a production one.
 
 ## Why
 
@@ -21,18 +21,27 @@ Every school that runs Moodle has a list of small automations: email a student w
 
 Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with the right capability, wires them together in a [React Flow](https://reactflow.dev) editor, and Moodle runs the workflow from scheduled or ad hoc tasks. Think n8n, Zapier or Make, but inside Moodle, with Moodle's permissions and logs.
 
-## What it will do
+## What it does today
 
 | Part | Status |
 | --- | --- |
-| Workflow list, capabilities, privacy provider | Done |
-| Placeholder templates (`{{trigger.relateduserid}}`) | Done |
-| Graph validation (one trigger, no cycles, no dangling edges) | Done in the editor, server side next |
-| Triggers: run now, schedule, Moodle events | Next |
-| Nodes: condition, set variable, log, send notification | Next |
-| Node: call any Moodle external function (the Moodle API as nodes) | Planned |
+| Node editor (React Flow): palette, settings per node, branch handles, problems list | Done |
+| Triggers: started by hand, on a schedule (cron, site timezone), when a Moodle event happens | Done |
+| Nodes: condition, set variable, write to run log, send notification | Done |
+| Placeholders in any setting: `{{trigger.relateduserid}}`, `{{nodes.<id>.<key>}}`, `{{vars.<name>}}` | Done |
+| Run history with each step's output or error | Done |
+| Loop protection: a workflow that fires its own trigger stops after 3 levels | Done |
+| Privacy provider, capabilities, run-as user | Done |
+| Node: call any Moodle web service function (the Moodle API as nodes) | Next |
 | Node: HTTP request to an external service | Planned |
-| Run history with step logs | Planned |
+| More Moodle nodes: enrol, add to group, grade, course actions | Planned |
+
+## How a workflow runs
+
+1. A trigger fires: the Run now button, the every-minute schedule task, or a Moodle event caught by one observer that does a single cached lookup and returns.
+2. An ad hoc task is queued as the workflow's run-as user, so the work never happens inside someone's page request.
+3. The engine walks the graph from the trigger. Each node gets its settings with placeholders filled in, and a condition picks which branch continues.
+4. The run, with every step's output, is saved to the run history. A node that fails stops the run and records why.
 
 ## How it is built
 
@@ -88,7 +97,10 @@ bin/moodle-docker-compose exec webserver php admin/tool/phpunit/cli/init.php
 bin/moodle-docker-compose exec webserver vendor/bin/phpunit --testsuite tool_autoflow_testsuite
 bin/moodle-docker-compose exec webserver php admin/tool/behat/cli/init.php
 bin/moodle-docker-compose exec -u www-data webserver php admin/tool/behat/cli/run.php --tags=@tool_autoflow
-cd /path/to/moodle-tool_autoflow/frontend && MOODLE_URL=http://localhost:8000 MOODLE_ADMIN_PASS=... npx playwright test
+cd /path/to/moodle-tool_autoflow/frontend
+MOODLE_URL=http://localhost:8000 MOODLE_ADMIN_PASS=... \
+  MOODLE_CRON_CMD="cd /path/to/moodle-docker && bin/moodle-docker-compose exec -T webserver php admin/cli/adhoc_task.php --execute" \
+  npx playwright test
 ```
 
 ## Contributing

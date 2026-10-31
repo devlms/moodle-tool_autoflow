@@ -1,0 +1,56 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template tool_autoflow/run_list
+
+    Run history of one workflow, newest first, with each step's output or error.
+
+    Context variables required for this template:
+    * hasruns - bool
+    * runs - list of {id, status, statuslabel, success, trigger, time, error, steps: [{node, type, status, detail}]}
+
+    Example context (json):
+    {
+        "hasruns": true,
+        "runs": [
+            {"id": 3, "status": "success", "statuslabel": "Succeeded", "success": true, "trigger": "manual",
+             "time": "1 November 2026, 9:00 AM", "error": "",
+             "steps": [{"node": "log", "type": "action.log", "status": "ok", "detail": "{\"message\": \"Hello\"}"}]}
+        ]
+    }
+}}
+<div class="tool_autoflow-runs" data-region="run-list">
+    {{#hasruns}}
+    {{#runs}}
+    <details class="mb-2 border rounded p-2" data-runid="{{id}}" data-status="{{status}}" data-testid="run">
+        <summary>
+            <span class="badge {{#success}}bg-success{{/success}}{{^success}}bg-danger{{/success}}">{{statuslabel}}</span>
+            {{time}} &middot; {{trigger}}
+        </summary>
+        {{#error}}<p class="text-danger mt-2">{{error}}</p>{{/error}}
+        <ol class="mt-2">
+            {{#steps}}
+            <li><code>{{node}}</code> {{type}} ({{status}})<pre class="small mb-1">{{detail}}</pre></li>
+            {{/steps}}
+        </ol>
+    </details>
+    {{/runs}}
+    {{/hasruns}}
+    {{^hasruns}}
+    <p class="alert alert-info">{{#str}}never, tool_autoflow{{/str}}</p>
+    {{/hasruns}}
+</div>

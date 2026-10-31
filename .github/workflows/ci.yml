@@ -221,6 +221,8 @@ jobs:
       MOODLE_DOCKER_PHP_VERSION: '8.3'
       MOODLE_DOCKER_WEB_PORT: '8000'
       MOODLE_ADMIN_PASS: ${{ github.run_id }}-e2e
+      # The e2e tests run queued workflows through this.
+      MOODLE_CRON_CMD: cd ${{ github.workspace }}/moodle-docker && bin/moodle-docker-compose exec -T webserver php admin/cli/adhoc_task.php --execute
     steps:
       - uses: actions/checkout@v6
         with:

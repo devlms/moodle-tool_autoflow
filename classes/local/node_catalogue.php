@@ -47,4 +47,59 @@ final class node_catalogue {
             new send_notification_node(),
         );
     }
+
+    /**
+     * Palette entries for the editor: type, label, category, branches and parameters with labels.
+     *
+     * @return array[]
+     */
+    public static function describe(): array {
+        $strings = get_string_manager();
+        $types = [];
+        foreach (self::registry()->types() as $type) {
+            $node = self::registry()->get($type);
+            $key = 'node:' . $type;
+            $types[] = [
+                'type' => $type,
+                'label' => $strings->string_exists($key, 'tool_autoflow') ? get_string($key, 'tool_autoflow') : $type,
+                'description' => $strings->string_exists("$key:help", 'tool_autoflow')
+                    ? get_string("$key:help", 'tool_autoflow') : '',
+                'category' => strtok($type, '.'),
+                'branches' => $node->branches(),
+                'params' => array_map(function ($param) use ($strings) {
+                    $labels = [];
+                    foreach ($param->options as $option) {
+                        $labels[$option] = get_string("option:$option", 'tool_autoflow');
+                    }
+                    return $param->to_array() + [
+                        'label' => $strings->string_exists("param:{$param->name}", 'tool_autoflow')
+                            ? get_string("param:{$param->name}", 'tool_autoflow') : $param->name,
+                        'optionlabels' => $labels,
+                    ];
+                }, $node->params()),
+            ];
+        }
+        return $types;
+    }
+
+    /**
+     * Every concrete event class on the site, for the event trigger picker.
+     *
+     * @return string[] Class names with a leading backslash, sorted.
+     */
+    public static function events(): array {
+        global $CFG;
+        // Loading a deprecated event class emits debugging; the core event list report silences it the same way.
+        [$debug, $display, $developer] = [$CFG->debug, $CFG->debugdisplay, $CFG->debugdeveloper];
+        [$CFG->debug, $CFG->debugdisplay, $CFG->debugdeveloper] = [0, false, false];
+        $events = [];
+        foreach (array_keys(\core_component::get_component_classes_in_namespace(null, 'event')) as $class) {
+            if (is_a($class, \core\event\base::class, true) && !(new \ReflectionClass($class))->isAbstract()) {
+                $events[] = '\\' . $class;
+            }
+        }
+        [$CFG->debug, $CFG->debugdisplay, $CFG->debugdeveloper] = [$debug, $display, $developer];
+        sort($events);
+        return $events;
+    }
 }

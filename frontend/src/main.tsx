@@ -1,11 +1,18 @@
 import { createRoot } from 'react-dom/client';
 import '@xyflow/react/dist/style.css';
-import { Editor } from './Editor';
-import type { Graph } from './graph';
+import './editor.css';
+import { App } from './App';
+import { moodleClient } from './ajax';
 
-/** Called by amd/src/editor.js. Returns a function that unmounts the editor. */
-export function mount(element: HTMLElement, props: { graph: Graph }): () => void {
-  const root = createRoot(element);
-  root.render(<Editor graph={props.graph} />);
-  return () => root.unmount();
+/** Mounts the editor on every [data-tool-autoflow-editor] element that edit.php prints. */
+function boot() {
+  document.querySelectorAll<HTMLElement>('[data-tool-autoflow-editor]').forEach((element) => {
+    createRoot(element).render(<App client={moodleClient} workflowid={Number(element.dataset.workflowId ?? 0)} />);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
 }
