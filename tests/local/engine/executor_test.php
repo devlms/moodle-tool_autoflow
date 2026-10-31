@@ -117,7 +117,11 @@ final class executor_test extends \basic_testcase {
 
     public function test_a_failing_node_stops_the_run(): void {
         $boom = new class implements node_type {
-            /** @return string */
+            /**
+             * Type name.
+             *
+             * @return string
+             */
             public function type(): string {
                 return 'test.boom';
             }
