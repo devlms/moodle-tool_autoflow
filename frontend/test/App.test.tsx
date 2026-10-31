@@ -17,6 +17,10 @@ const nodetypes: NodeTypeInfo[] = [
     type: 'logic.condition', label: 'Condition', description: '', category: 'logic', branches: ['true', 'false'],
     params: [param('left', 'text'), param('operator', 'select', { options: ['eq', 'gt'], optionlabels: { eq: 'is equal to', gt: 'is greater than' } })],
   },
+  {
+    type: 'moodle.call_function', label: 'Call a function', description: '', category: 'moodle', branches: [],
+    params: [param('function', 'function'), param('args', 'json', { required: false })],
+  },
   { type: 'action.log', label: 'Write to log', description: 'Logs it', category: 'action', branches: [], params: [param('message', 'textarea')] },
 ];
 
@@ -24,11 +28,11 @@ const strings: Record<string, string> = {
   save: 'Save', saved: 'Saved', runnow: 'Run now', runqueued: 'Run queued', enabled: 'Enabled', workflowname: 'Workflow name',
   palette: 'Add a node', nodesettings: 'Node settings', selectnode: 'Select a node', deletenode: 'Delete node', problems: 'Problems',
   saving: 'Saving...', savefailed: 'Could not save', 'branch:true': 'Yes', 'branch:false': 'No', choose: 'Choose...',
-  workflowruns: 'Run history', 'cat:trigger': 'Triggers', 'cat:logic': 'Logic', 'cat:action': 'Actions', 'cat:moodle': 'Moodle',
+  workflowruns: 'Run history', invalidjson: 'Not valid JSON yet', 'cat:trigger': 'Triggers', 'cat:logic': 'Logic', 'cat:action': 'Actions', 'cat:moodle': 'Moodle',
 };
 
 const data = (overrides: Partial<EditorData> = {}): EditorData => ({
-  id: 0, name: '', enabled: false, graph: { nodes: [], edges: [] }, nodetypes, events: ['\\core\\event\\user_created'], strings,
+  id: 0, name: '', enabled: false, graph: { nodes: [], edges: [] }, nodetypes, events: ['\\core\\event\\user_created'], functions: ['core_webservice_get_site_info'], strings,
   ...overrides,
 });
 
@@ -303,5 +307,41 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Saved');
     expect(window.location.search).toBe('?id=1&x=y');
+  });
+
+  it('stores function arguments as an object once the text is valid JSON', async () => {
+    const user = userEvent.setup();
+    const client = await renderApp();
+    await user.click(screen.getByTestId('palette-moodle.call_function'));
+    expect(screen.getByLabelText('FUNCTION')).toHaveAttribute('list', 'tool_autoflow-functions');
+    expect(document.querySelector('#tool_autoflow-functions option')).toHaveAttribute('value', 'core_webservice_get_site_info');
+    await user.type(screen.getByLabelText('FUNCTION'), 'core_user_get_users_by_field');
+
+    const args = screen.getByLabelText('ARGS');
+    expect(args.tagName).toBe('TEXTAREA');
+    // Set the text directly: userEvent reads [ and { as key commands.
+    fireEvent.change(args, { target: { value: '{"field": "id"' } });
+    expect(screen.getByText('Not valid JSON yet')).toBeInTheDocument();
+    fireEvent.change(args, { target: { value: '{"field": "id", "values": ["{{trigger.userid}}"]}' } });
+    expect(screen.queryByText('Not valid JSON yet')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    const params = (client.save as ReturnType<typeof vi.fn>).mock.calls[0][0].graph.nodes[0].data.params;
+    expect(params).toEqual({ function: 'core_user_get_users_by_field', args: { field: 'id', values: ['{{trigger.userid}}'] } });
+  });
+
+  it('shows saved JSON arguments formatted, and keeps text that is not an object', async () => {
+    const user = userEvent.setup();
+    const graph = { nodes: [{ id: 'c', type: 'moodle.call_function', data: { params: { args: { a: 1 } } }, position: { x: 0, y: 0 } }], edges: [] };
+    const client = await renderApp(fakeClient(data({ id: 1, graph })), 1);
+    fireEvent.click(screen.getByTestId('node-c'));
+    const args = screen.getByLabelText('ARGS');
+    expect(args).toHaveValue('{\n  "a": 1\n}');
+    fireEvent.change(args, { target: { value: '[1]' } });
+    expect(screen.getByText('Not valid JSON yet')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect((client.save as ReturnType<typeof vi.fn>).mock.calls[0][0].graph.nodes[0].data.params.args).toBe('[1]');
   });
 });

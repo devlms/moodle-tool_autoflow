@@ -27,12 +27,12 @@ Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with th
 | --- | --- |
 | Node editor (React Flow): palette, settings per node, branch handles, problems list | Done |
 | Triggers: started by hand, on a schedule (cron, site timezone), when a Moodle event happens | Done |
-| Nodes: condition, set variable, write to run log, send notification | Done |
+| Nodes: condition, set variable, write to run log, send notification, call a Moodle function | Done |
 | Placeholders in any setting: `{{trigger.relateduserid}}`, `{{nodes.<id>.<key>}}`, `{{vars.<name>}}` | Done |
 | Run history with each step's output or error | Done |
 | Loop protection: a workflow that fires its own trigger stops after 3 levels | Done |
 | Privacy provider, capabilities, run-as user | Done |
-| Node: call any Moodle web service function (the Moodle API as nodes) | Next |
+| Node: call any Moodle web service function (the Moodle API as nodes), arguments as JSON with placeholders | Done |
 | Node: HTTP request to an external service | Planned |
 | More Moodle nodes: enrol, add to group, grade, course actions | Planned |
 

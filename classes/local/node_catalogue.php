@@ -21,6 +21,7 @@ use tool_autoflow\local\engine\nodes\log_node;
 use tool_autoflow\local\engine\nodes\set_variable_node;
 use tool_autoflow\local\engine\nodes\trigger_node;
 use tool_autoflow\local\engine\registry;
+use tool_autoflow\local\nodes\call_function_node;
 use tool_autoflow\local\nodes\send_notification_node;
 
 /**
@@ -45,6 +46,7 @@ final class node_catalogue {
             new set_variable_node(),
             new log_node(),
             new send_notification_node(),
+            new call_function_node(),
         );
     }
 
@@ -101,5 +103,18 @@ final class node_catalogue {
         [$CFG->debug, $CFG->debugdisplay, $CFG->debugdeveloper] = [$debug, $display, $developer];
         sort($events);
         return $events;
+    }
+
+    /**
+     * Every web service function installed on the site, for the call function node.
+     *
+     * @return string[] Sorted names.
+     */
+    public static function functions(): array {
+        global $DB;
+        // Sorted here, not in SQL: database collations order underscores differently.
+        $names = $DB->get_fieldset_select('external_functions', 'name', '1 = 1');
+        sort($names, SORT_STRING);
+        return $names;
     }
 }

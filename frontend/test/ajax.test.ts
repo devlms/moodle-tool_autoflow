@@ -51,7 +51,7 @@ describe('moodleClient', () => {
       respond([
         {
           error: false,
-          data: { id: 0, name: '', enabled: false, graph: '{"nodes":[],"edges":[]}', nodetypes: '[]', events: '["\\\\a"]', strings: '{"save":"Save"}' },
+          data: { id: 0, name: '', enabled: false, graph: '{"nodes":[],"edges":[]}', nodetypes: '[]', events: '["\\\\a"]', functions: '["f"]', strings: '{"save":"Save"}' },
         },
       ]),
     );
@@ -62,6 +62,7 @@ describe('moodleClient', () => {
       graph: { nodes: [], edges: [] },
       nodetypes: [],
       events: ['\\a'],
+      functions: ['f'],
       strings: { save: 'Save' },
     });
     expect(JSON.parse((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body)[0]).toEqual({

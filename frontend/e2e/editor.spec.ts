@@ -79,3 +79,28 @@ test('a workflow without a trigger is saved as a disabled draft with the problem
   await expect(problems).toContainText('Add a trigger to start the workflow.');
   await expect(editor(page).getByLabel('Enabled', { exact: true })).not.toBeChecked();
 });
+
+test('a workflow can call any Moodle web service function', async ({ page }) => {
+  const name = `Site info ${Date.now()}`;
+  await page.goto('/admin/tool/autoflow/edit.php');
+  await editor(page).getByLabel('Workflow name', { exact: true }).fill(name);
+  await addNode(page, 'trigger.manual');
+  await addNode(page, 'moodle.call_function');
+  await editor(page).getByLabel('Function', { exact: true }).fill('core_webservice_get_site_info');
+  await addNode(page, 'action.log');
+  await editor(page).getByLabel('Message', { exact: true }).fill('This site is {{nodes.moodle_call_function_1.result.sitename}}');
+  await connect(page, 'trigger_manual_1', 'moodle_call_function_1');
+  await connect(page, 'moodle_call_function_1', 'action_log_1');
+  await editor(page).getByRole('button', { name: 'Save' }).click();
+  await expect(editor(page).getByRole('status')).toHaveText('Saved');
+  await editor(page).getByRole('button', { name: 'Run now' }).click();
+  await expect(editor(page).getByRole('status')).toContainText('Run queued');
+  runAdhocTasks();
+
+  await page.goto('/admin/tool/autoflow/index.php');
+  await page.locator('tr', { hasText: name }).getByTestId('run-history').click();
+  const run = page.getByTestId('run').first();
+  await expect(run).toHaveAttribute('data-status', 'success');
+  await run.locator('summary').click();
+  await expect(run).toContainText(/This site is \S+/);
+});

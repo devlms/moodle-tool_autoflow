@@ -3,7 +3,7 @@ import type { Graph } from './graph';
 /** One parameter of a node type, as described by node_catalogue::describe(). */
 export interface ParamInfo {
   name: string;
-  kind: 'text' | 'textarea' | 'number' | 'select' | 'event' | 'user';
+  kind: 'text' | 'textarea' | 'number' | 'select' | 'event' | 'user' | 'function' | 'json';
   required: boolean;
   options: string[];
   label: string;
@@ -27,6 +27,7 @@ export interface EditorData {
   graph: Graph;
   nodetypes: NodeTypeInfo[];
   events: string[];
+  functions: string[];
   strings: Record<string, string>;
 }
 

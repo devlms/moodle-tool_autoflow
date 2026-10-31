@@ -25,7 +25,7 @@ use tool_autoflow\local\workflow_store;
 
 /**
  * Everything the editor needs to open a workflow: the workflow, the node palette,
- * the event list and the interface strings.
+ * the event and function lists and the interface strings.
  *
  * @package    tool_autoflow
  * @copyright  2026 DevLMS <contact@devlms.com>
@@ -36,7 +36,7 @@ class get_editor extends external_api {
     private const STRINGS = ['save', 'saved', 'runnow', 'runqueued', 'enabled', 'workflowname', 'palette', 'nodesettings',
         'selectnode', 'deletenode', 'problems', 'saving', 'savefailed', 'branch:true', 'branch:false', 'choose', 'workflowruns',
         'cat:trigger', 'cat:logic', 'cat:action', 'cat:moodle', 'error:notrigger', 'error:manytriggers', 'error:duplicateid',
-        'error:danglingedge', 'error:cycle', 'error:unreachable'];
+        'error:danglingedge', 'error:cycle', 'error:unreachable', 'invalidjson'];
 
     /**
      * Parameters.
@@ -74,6 +74,7 @@ class get_editor extends external_api {
             'graph' => $workflow->graph,
             'nodetypes' => json_encode(node_catalogue::describe()),
             'events' => json_encode(node_catalogue::events()),
+            'functions' => json_encode(node_catalogue::functions()),
             'strings' => json_encode($strings),
         ];
     }
@@ -91,6 +92,7 @@ class get_editor extends external_api {
             'graph' => new external_value(PARAM_RAW, 'Graph JSON'),
             'nodetypes' => new external_value(PARAM_RAW, 'Palette JSON'),
             'events' => new external_value(PARAM_RAW, 'Event class names JSON'),
+            'functions' => new external_value(PARAM_RAW, 'Web service function names JSON'),
             'strings' => new external_value(PARAM_RAW, 'Interface strings JSON'),
         ]);
     }

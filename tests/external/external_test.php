@@ -49,7 +49,7 @@ final class external_test extends \advanced_testcase {
 
         $types = array_column(json_decode($result['nodetypes'], true), null, 'type');
         $this->assertSame(['trigger.manual', 'trigger.schedule', 'trigger.event', 'logic.condition', 'logic.set', 'action.log',
-            'moodle.send_notification'], array_keys($types));
+            'moodle.send_notification', 'moodle.call_function'], array_keys($types));
         $condition = $types['logic.condition'];
         $this->assertSame('Condition', $condition['label']);
         $this->assertSame('logic', $condition['category']);
@@ -61,6 +61,12 @@ final class external_test extends \advanced_testcase {
         $this->assertSame('moodle', $types['moodle.send_notification']['category']);
 
         $this->assertContains('\\core\\event\\user_created', json_decode($result['events'], true));
+        $functions = json_decode($result['functions'], true);
+        $this->assertContains('core_webservice_get_site_info', $functions);
+        $this->assertSame($functions, array_values(array_unique($functions)));
+        $sorted = $functions;
+        sort($sorted);
+        $this->assertSame($sorted, $functions);
         $this->assertSame('Save', json_decode($result['strings'], true)['save']);
     }
 

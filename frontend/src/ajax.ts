@@ -35,10 +35,11 @@ export async function callService<T>(methodname: string, args: Record<string, un
   return reply.data as T;
 }
 
-interface RawEditorData extends Omit<EditorData, 'graph' | 'nodetypes' | 'events' | 'strings'> {
+interface RawEditorData extends Omit<EditorData, 'graph' | 'nodetypes' | 'events' | 'functions' | 'strings'> {
   graph: string;
   nodetypes: string;
   events: string;
+  functions: string;
   strings: string;
 }
 
@@ -51,6 +52,7 @@ export const moodleClient: Client = {
       graph: JSON.parse(raw.graph),
       nodetypes: JSON.parse(raw.nodetypes),
       events: JSON.parse(raw.events),
+      functions: JSON.parse(raw.functions),
       strings: JSON.parse(raw.strings),
     };
   },

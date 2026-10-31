@@ -52,13 +52,51 @@ function NodeView({ id, data, selected }: NodeProps<FlowNode>) {
 
 const nodeTypes = { autoflow: NodeView };
 
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * Function arguments: a JSON object. It is stored as an object once the text parses, so
+ * placeholders are filled value by value on the server. Until then the text is kept as is.
+ */
+function JsonField({ id, value, onChange, invalid }: {
+  id: string; value: unknown; onChange: (v: unknown) => void; invalid: string;
+}) {
+  const [text, setText] = useState(isObject(value) ? JSON.stringify(value, null, 2) : String(value ?? ''));
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    parsed = undefined;
+  }
+  const valid = text.trim() === '' || isObject(parsed);
+  return (
+    <>
+      <textarea id={id} className="form-control font-monospace" rows={6} value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          let next: unknown = e.target.value;
+          try {
+            const candidate = JSON.parse(e.target.value);
+            next = isObject(candidate) ? candidate : e.target.value;
+          } catch {
+            // Keep the text until it is a JSON object.
+          }
+          onChange(next);
+        }} />
+      {!valid && <div className="form-text text-danger">{invalid}</div>}
+    </>
+  );
+}
+
 function ParamField({ param, value, onChange, strings }: {
-  param: ParamInfo; value: unknown; onChange: (v: string) => void; strings: Record<string, string>;
+  param: ParamInfo; value: unknown; onChange: (v: unknown) => void; strings: Record<string, string>;
 }) {
   const id = `tool_autoflow-param-${param.name}`;
   const text = value === undefined || value === null ? '' : String(value);
   let input;
-  if (param.kind === 'textarea') {
+  if (param.kind === 'json') {
+    input = <JsonField id={id} value={value} onChange={onChange} invalid={strings.invalidjson} />;
+  } else if (param.kind === 'textarea') {
     input = <textarea id={id} className="form-control" rows={4} value={text} onChange={(e) => onChange(e.target.value)} />;
   } else if (param.kind === 'select') {
     input = (
@@ -70,7 +108,8 @@ function ParamField({ param, value, onChange, strings }: {
       </select>
     );
   } else {
-    const list = param.kind === 'event' ? 'tool_autoflow-events' : undefined;
+    const lists: Record<string, string> = { event: 'tool_autoflow-events', function: 'tool_autoflow-functions' };
+    const list = lists[param.kind];
     input = <input id={id} className="form-control" list={list} value={text} onChange={(e) => onChange(e.target.value)} />;
   }
   return (
@@ -140,7 +179,7 @@ export function App({ client, workflowid }: AppProps) {
     setEdges((es) => es.filter((e) => e.source !== nodeid && e.target !== nodeid));
     setSelected(null);
   };
-  const setParam = (nodeid: string, key: string, value: string) =>
+  const setParam = (nodeid: string, key: string, value: unknown) =>
     setNodes((ns) => ns.map((n) => (n.id === nodeid ? { ...n, data: { ...n.data, params: { ...n.data.params, [key]: value } } } : n)));
   const save = async () => {
     setStatus(strings.saving);
@@ -205,7 +244,7 @@ export function App({ client, workflowid }: AppProps) {
               <>
                 <h4>{currentType.label}</h4>
                 {currentType.params.map((p) => (
-                  <ParamField key={p.name} param={p} value={current.data.params[p.name]} strings={strings}
+                  <ParamField key={`${current.id}:${p.name}`} param={p} value={current.data.params[p.name]} strings={strings}
                     onChange={(v) => setParam(current.id, p.name, v)} />
                 ))}
                 <button type="button" className="btn btn-link text-danger" onClick={() => remove(current.id)}>{strings.deletenode}</button>
@@ -228,6 +267,9 @@ export function App({ client, workflowid }: AppProps) {
         )}
         <datalist id="tool_autoflow-events">
           {data.events.map((e) => <option key={e} value={e} />)}
+        </datalist>
+        <datalist id="tool_autoflow-functions">
+          {data.functions.map((f) => <option key={f} value={f} />)}
         </datalist>
       </div>
     </LabelsContext.Provider>
