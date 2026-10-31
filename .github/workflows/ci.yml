@@ -117,7 +117,8 @@ jobs:
         if: ${{ !cancelled() && matrix.coverage }}
         run: |
           plugindir=$(find moodle -maxdepth 4 -type d -path '*/admin/tool/autoflow' | head -1)
-          php moodle/admin/tool/phpunit/cli/util.php --buildcomponentconfigs
+          # Moodle 5.1+ keeps web files, this script included, under public/.
+          php "$(find moodle -maxdepth 6 -path '*/admin/tool/phpunit/cli/util.php' | head -1)" --buildcomponentconfigs
           cd moodle
           php -d pcov.enabled=1 vendor/bin/phpunit -c "../$plugindir" --fail-on-warning \
             --coverage-html "$GITHUB_WORKSPACE/reports/php-coverage" \

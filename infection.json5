@@ -15,7 +15,11 @@
         "summaryJson": "build/infection/summary.json"
     },
     "mutators": {
-        "@default": true
+        "@default": true,
+        // Arrays used as sets are read with isset(), so the stored value never matters.
+        "TrueValue": {
+            "ignoreSourceCodeByRegex": ["\\$\\w+\\[.+\\] = true;", "\\$reached = \\[\\$triggers\\[0\\] => true\\];"]
+        }
     },
     "minMsi": 90,
     "minCoveredMsi": 95,
