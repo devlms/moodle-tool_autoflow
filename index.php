@@ -24,7 +24,6 @@
 
 require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
-require_once($CFG->dirroot . '/user/lib.php');
 
 use tool_autoflow\local\runner;
 use tool_autoflow\local\workflow_store;
@@ -61,7 +60,8 @@ if ($action === 'delete') {
 
 $fields = 'id, name, enabled, triggertype, runasuserid, timemodified';
 $workflows = $DB->get_records('tool_autoflow_workflow', null, 'name ASC', $fields);
-$runasusers = user_get_users_by_id(array_filter(array_column($workflows, 'runasuserid')));
+// Not user_get_users_by_id(): it is deprecated in 5.3 and its replacement does not exist in 4.5.
+$runasusers = $DB->get_records_list('user', 'id', array_filter(array_column($workflows, 'runasuserid')));
 $lastruns = $DB->get_records_sql('SELECT workflowid, MAX(timecreated) AS lastrun FROM {tool_autoflow_run} GROUP BY workflowid');
 $strings = get_string_manager();
 $templatecontext = [

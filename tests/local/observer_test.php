@@ -100,6 +100,7 @@ final class observer_test extends \advanced_testcase {
         $message->subject = 'Start';
         $message->fullmessage = 'Start';
         $message->fullmessageformat = FORMAT_PLAIN;
+        $message->fullmessagehtml = '<p>Start</p>';
         $message->notification = 1;
         message_send($message);
 
