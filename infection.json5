@@ -16,6 +16,10 @@
     },
     "mutators": {
         "@default": true,
+        // Digits captured by a regex compare the same as integers in PHP, so these casts cannot be detected.
+        "CastInt": {
+            "ignore": ["tool_autoflow\\local\\engine\\cron_expression::parse_field"]
+        },
         // Arrays used as sets are read with isset(), so the stored value never matters.
         "TrueValue": {
             "ignoreSourceCodeByRegex": ["\\$\\w+\\[.+\\] = true;", "\\$reached = \\[\\$triggers\\[0\\] => true\\];"]
