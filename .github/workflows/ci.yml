@@ -120,7 +120,8 @@ jobs:
           # Moodle 5.1+ keeps web files, this script included, under public/.
           php "$(find moodle -maxdepth 6 -path '*/admin/tool/phpunit/cli/util.php' | head -1)" --buildcomponentconfigs
           cd moodle
-          php -d pcov.enabled=1 vendor/bin/phpunit -c "../$plugindir" --fail-on-warning \
+          # pcov guesses the folder to watch and picks lib/ in a Moodle root, so point it at the plugin.
+          php -d pcov.enabled=1 -d pcov.directory="$GITHUB_WORKSPACE/$plugindir" vendor/bin/phpunit -c "../$plugindir" --fail-on-warning \
             --coverage-html "$GITHUB_WORKSPACE/reports/php-coverage" \
             --coverage-clover "$GITHUB_WORKSPACE/reports/php-coverage/clover.xml" \
             --log-junit "$GITHUB_WORKSPACE/reports/php-coverage/junit.xml"

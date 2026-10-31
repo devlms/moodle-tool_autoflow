@@ -127,6 +127,24 @@ final class executor_test extends \basic_testcase {
             }
 
             /**
+             * No parameters.
+             *
+             * @return array
+             */
+            public function params(): array {
+                return [];
+            }
+
+            /**
+             * No branches.
+             *
+             * @return array
+             */
+            public function branches(): array {
+                return [];
+            }
+
+            /**
              * Always fails.
              *
              * @param array $params

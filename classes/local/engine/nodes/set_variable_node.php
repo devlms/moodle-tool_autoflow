@@ -21,6 +21,7 @@ namespace tool_autoflow\local\engine\nodes;
 use tool_autoflow\local\engine\node_failed;
 use tool_autoflow\local\engine\node_result;
 use tool_autoflow\local\engine\node_type;
+use tool_autoflow\local\engine\param;
 
 /**
  * Stores a value under a name, readable later as {{vars.<name>}}.
@@ -37,6 +38,24 @@ final class set_variable_node implements node_type {
      */
     public function type(): string {
         return 'logic.set';
+    }
+
+    /**
+     * Parameters.
+     *
+     * @return param[]
+     */
+    public function params(): array {
+        return [new param('name', 'text', true), new param('value', 'text', false)];
+    }
+
+    /**
+     * Branches.
+     *
+     * @return string[]
+     */
+    public function branches(): array {
+        return [];
     }
 
     /**

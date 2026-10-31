@@ -37,6 +37,21 @@ interface node_type {
     public function type(): string;
 
     /**
+     * The parameters the node takes, in display order.
+     *
+     * @return param[]
+     */
+    public function params(): array;
+
+    /**
+     * Named branches the node can choose, such as true and false. Empty for nodes
+     * that always continue on their plain edges.
+     *
+     * @return string[]
+     */
+    public function branches(): array;
+
+    /**
      * Run the node.
      *
      * @param array $params Node parameters with placeholders resolved.

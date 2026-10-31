@@ -21,6 +21,7 @@ namespace tool_autoflow\local\engine\nodes;
 use tool_autoflow\local\engine\node_failed;
 use tool_autoflow\local\engine\node_result;
 use tool_autoflow\local\engine\node_type;
+use tool_autoflow\local\engine\param;
 
 /**
  * Compares two values and follows the "true" or "false" branch.
@@ -40,6 +41,28 @@ final class condition_node implements node_type {
      */
     public function type(): string {
         return 'logic.condition';
+    }
+
+    /**
+     * Parameters.
+     *
+     * @return param[]
+     */
+    public function params(): array {
+        return [
+            new param('left', 'text', true),
+            new param('operator', 'select', true, ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'empty', 'notempty']),
+            new param('right', 'text', false),
+        ];
+    }
+
+    /**
+     * Branches.
+     *
+     * @return string[]
+     */
+    public function branches(): array {
+        return ['true', 'false'];
     }
 
     /**

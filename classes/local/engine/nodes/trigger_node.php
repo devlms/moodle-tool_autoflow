@@ -20,6 +20,7 @@ namespace tool_autoflow\local\engine\nodes;
 
 use tool_autoflow\local\engine\node_result;
 use tool_autoflow\local\engine\node_type;
+use tool_autoflow\local\engine\param;
 
 /**
  * The start of a workflow. Its output is the trigger data, so {{nodes.<trigger id>.x}}
@@ -48,6 +49,28 @@ final class trigger_node implements node_type {
      */
     public function type(): string {
         return $this->type;
+    }
+
+    /**
+     * Parameters.
+     *
+     * @return param[]
+     */
+    public function params(): array {
+        return match ($this->type) {
+            'trigger.schedule' => [new param('cron', 'text', true)],
+            'trigger.event' => [new param('eventname', 'event', true)],
+            default => [],
+        };
+    }
+
+    /**
+     * Branches.
+     *
+     * @return string[]
+     */
+    public function branches(): array {
+        return [];
     }
 
     /**

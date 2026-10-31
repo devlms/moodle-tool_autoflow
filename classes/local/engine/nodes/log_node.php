@@ -20,6 +20,7 @@ namespace tool_autoflow\local\engine\nodes;
 
 use tool_autoflow\local\engine\node_result;
 use tool_autoflow\local\engine\node_type;
+use tool_autoflow\local\engine\param;
 
 /**
  * Writes a message to the run log. Useful for checking what a workflow sees.
@@ -36,6 +37,24 @@ final class log_node implements node_type {
      */
     public function type(): string {
         return 'action.log';
+    }
+
+    /**
+     * Parameters.
+     *
+     * @return param[]
+     */
+    public function params(): array {
+        return [new param('message', 'textarea', true)];
+    }
+
+    /**
+     * Branches.
+     *
+     * @return string[]
+     */
+    public function branches(): array {
+        return [];
     }
 
     /**
