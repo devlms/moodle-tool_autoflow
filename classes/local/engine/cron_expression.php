@@ -152,7 +152,7 @@ final class cron_expression {
                 [$start, $end] = [$min, $max];
             } else {
                 $start = (int) $m['start'];
-                // "5/20" means from 5 to the end of the range, every 20.
+                // From a start such as 5/20: up to the end of the range, every 20.
                 $end = $m['end'] !== null ? (int) $m['end'] : ($m['step'] !== null ? $max : $start);
             }
             if ($step < 1 || $start < $min || $end > $max || $start > $end) {
