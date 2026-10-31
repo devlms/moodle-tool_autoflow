@@ -51,7 +51,8 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->runas = $gen->create_user();
         $this->other = $gen->create_user();
         $workflowid = $DB->insert_record('tool_autoflow_workflow', [
-            'name' => 'Welcome', 'enabled' => 1, 'graph' => '{}', 'triggertype' => 'trigger.manual', 'triggerdata' => '', 'runasuserid' => $this->runas->id,
+            'name' => 'Welcome', 'enabled' => 1, 'graph' => '{}', 'triggertype' => 'trigger.manual', 'triggerdata' => '',
+            'runasuserid' => $this->runas->id,
             'usermodified' => $this->editor->id, 'timecreated' => 100, 'timemodified' => 200,
         ]);
         $DB->insert_record('tool_autoflow_run', [

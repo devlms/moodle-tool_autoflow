@@ -59,7 +59,8 @@ if ($action === 'delete') {
     die();
 }
 
-$workflows = $DB->get_records('tool_autoflow_workflow', null, 'name ASC', 'id, name, enabled, triggertype, runasuserid, timemodified');
+$fields = 'id, name, enabled, triggertype, runasuserid, timemodified';
+$workflows = $DB->get_records('tool_autoflow_workflow', null, 'name ASC', $fields);
 $runasusers = user_get_users_by_id(array_filter(array_column($workflows, 'runasuserid')));
 $lastruns = $DB->get_records_sql('SELECT workflowid, MAX(timecreated) AS lastrun FROM {tool_autoflow_run} GROUP BY workflowid');
 $strings = get_string_manager();
