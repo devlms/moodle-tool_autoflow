@@ -143,4 +143,12 @@ final class runner_test extends \advanced_testcase {
         $this->runAdhocTasks(run_workflow::class);
         $this->assertSame(['manual'], $DB->get_fieldset_select('tool_autoflow_run', 'triggertype', 'workflowid = ?', [$id]));
     }
+
+    public function test_queued_run_uses_the_user_who_saved_the_workflow(): void {
+        $manager = $this->getDataGenerator()->create_user();
+        $this->setUser($manager);
+        runner::queue(self::workflow(), [], 'manual');
+        $tasks = \core\task\manager::get_adhoc_tasks(run_workflow::class);
+        $this->assertEquals($manager->id, reset($tasks)->get_userid());
+    }
 }

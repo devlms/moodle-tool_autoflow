@@ -31,3 +31,4 @@ Feature: Run, inspect and delete workflows from the list
   Scenario: The list shows the trigger and when it last ran
     Then I should see "Started by hand" in the "Morning check" "table_row"
     And I should see "Never" in the "Morning check" "table_row"
+    And I should see "Admin User" in the "Morning check" "table_row"

@@ -105,6 +105,7 @@ $string['run:trigger'] = 'Started by';
 $string['runnow'] = 'Run now';
 $string['runqueued'] = 'Run queued. It starts with the next cron run.';
 $string['runs'] = 'Runs';
+$string['runsas'] = 'Runs as';
 $string['save'] = 'Save';
 $string['saved'] = 'Saved';
 $string['savefailed'] = 'Could not save';

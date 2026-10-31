@@ -26,6 +26,10 @@ use tool_autoflow\local\engine\invalid_graph;
  * The trigger type and its setting (event or cron) are copied out of the graph
  * on save, so the event observer and the schedule task never parse graphs.
  *
+ * A workflow runs as the user who saved it last. It can never do more than that
+ * person is allowed to do, and a manager who edits an admin's workflow brings it
+ * down to their own permissions.
+ *
  * @package    tool_autoflow
  * @copyright  2026 DevLMS <contact@devlms.com>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -65,6 +69,7 @@ final class workflow_store {
             'triggertype' => $triggertype,
             'triggerdata' => $triggerdata,
             'usermodified' => $USER->id,
+            'runasuserid' => $USER->id,
             'timemodified' => time(),
         ];
         if ($id) {

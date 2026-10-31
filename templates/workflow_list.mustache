@@ -22,14 +22,14 @@
     Context variables required for this template:
     * newurl - URL of the editor for a new workflow
     * hasworkflows - bool
-    * workflows - list of {id, name, enabled, trigger, lastrun, editurl, runsurl, runurl, deleteurl}
+    * workflows - list of {id, name, enabled, trigger, runas, lastrun, editurl, runsurl, runurl, deleteurl}
 
     Example context (json):
     {
         "newurl": "#",
         "hasworkflows": true,
         "workflows": [
-            {"id": 1, "name": "Welcome new students", "enabled": true, "trigger": "When an event happens",
+            {"id": 1, "name": "Welcome new students", "enabled": true, "trigger": "When an event happens", "runas": "Admin User",
              "lastrun": "31 October 2026", "editurl": "#", "runsurl": "#", "runurl": "#", "deleteurl": "#"}
         ]
     }
@@ -42,6 +42,7 @@
             <tr>
                 <th scope="col">{{#str}}name{{/str}}</th>
                 <th scope="col">{{#str}}trigger, tool_autoflow{{/str}}</th>
+                <th scope="col">{{#str}}runsas, tool_autoflow{{/str}}</th>
                 <th scope="col">{{#str}}status{{/str}}</th>
                 <th scope="col">{{#str}}lastrun, tool_autoflow{{/str}}</th>
                 <th scope="col">{{#str}}actions, tool_autoflow{{/str}}</th>
@@ -52,6 +53,7 @@
             <tr data-workflowid="{{id}}">
                 <td><a href="{{editurl}}">{{name}}</a></td>
                 <td>{{trigger}}</td>
+                <td>{{runas}}</td>
                 <td>{{#enabled}}{{#str}}enabled, admin{{/str}}{{/enabled}}{{^enabled}}{{#str}}disabled, admin{{/str}}{{/enabled}}</td>
                 <td>{{lastrun}}</td>
                 <td>

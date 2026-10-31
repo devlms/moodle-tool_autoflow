@@ -24,6 +24,7 @@
 
 require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
+require_once($CFG->dirroot . '/user/lib.php');
 
 use tool_autoflow\local\runner;
 use tool_autoflow\local\workflow_store;
@@ -58,7 +59,8 @@ if ($action === 'delete') {
     die();
 }
 
-$workflows = $DB->get_records('tool_autoflow_workflow', null, 'name ASC', 'id, name, enabled, triggertype, timemodified');
+$workflows = $DB->get_records('tool_autoflow_workflow', null, 'name ASC', 'id, name, enabled, triggertype, runasuserid, timemodified');
+$runasusers = user_get_users_by_id(array_filter(array_column($workflows, 'runasuserid')));
 $lastruns = $DB->get_records_sql('SELECT workflowid, MAX(timecreated) AS lastrun FROM {tool_autoflow_run} GROUP BY workflowid');
 $strings = get_string_manager();
 $templatecontext = [
@@ -70,6 +72,7 @@ $templatecontext = [
         'enabled' => (bool) $w->enabled,
         'trigger' => $strings->string_exists('node:' . $w->triggertype, 'tool_autoflow')
             ? get_string('node:' . $w->triggertype, 'tool_autoflow') : '',
+        'runas' => isset($runasusers[$w->runasuserid]) ? fullname($runasusers[$w->runasuserid]) : '',
         'lastrun' => isset($lastruns[$w->id]) ? userdate($lastruns[$w->id]->lastrun) : get_string('never', 'tool_autoflow'),
         'editurl' => (new moodle_url('/admin/tool/autoflow/edit.php', ['id' => $w->id]))->out(false),
         'runsurl' => (new moodle_url('/admin/tool/autoflow/runs.php', ['id' => $w->id]))->out(false),

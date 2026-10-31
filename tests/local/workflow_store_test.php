@@ -164,4 +164,15 @@ final class workflow_store_test extends \advanced_testcase {
         workflow_store::save(0, 'Off', self::graph('trigger.schedule', ['cron' => '* * * * *']), false);
         $this->assertSame([$id], array_map('intval', array_keys(workflow_store::scheduled())));
     }
+
+    public function test_workflow_runs_as_whoever_saved_it_last(): void {
+        $manager = $this->getDataGenerator()->create_user();
+        $id = workflow_store::save(0, 'Mine', self::graph(), true)['id'];
+        $this->assertEquals(get_admin()->id, workflow_store::get($id)->runasuserid);
+
+        // A manager who edits an admin's workflow brings it down to their own permissions.
+        $this->setUser($manager);
+        workflow_store::save($id, 'Mine', self::graph(), true);
+        $this->assertEquals($manager->id, workflow_store::get($id)->runasuserid);
+    }
 }
