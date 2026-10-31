@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Runs PHP with pcov in the Moodle dev image, so coverage and Infection work on any machine.
+#   dev/php vendor/bin/phpunit -c dev/phpunit.xml --coverage-text
+#   dev/php vendor/bin/infection --threads=4
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/app" -w /app --entrypoint php \
+  moodlehq/moodle-php-apache:8.3 -d pcov.enabled=1 -d pcov.directory=/app/classes "$@" 2> >(grep -v -E '^(#|$)|entrypoint|Apache|APACHE|DocumentRoot|Copying|Building|Running|Checking|cp: ' >&2)

@@ -1,0 +1,298 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Moodle's own checks and test runners on every supported Moodle and PHP pairing.
+  moodle:
+    name: Moodle ${{ matrix.moodle-branch }} / PHP ${{ matrix.php }} / ${{ matrix.database }}
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: ${{ matrix.database == 'pgsql' && 'postgres:17' || '' }}
+        env:
+          POSTGRES_USER: 'postgres'
+          POSTGRES_HOST_AUTH_METHOD: 'trust'
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+      mariadb:
+        image: ${{ matrix.database == 'mariadb' && 'mariadb:11' || '' }}
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
+          MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
+        ports:
+          - 3306:3306
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval 10s --health-timeout 5s --health-retries 3
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { moodle-branch: MOODLE_405_STABLE, php: '8.1', database: pgsql }
+          - { moodle-branch: MOODLE_405_STABLE, php: '8.3', database: mariadb }
+          - { moodle-branch: MOODLE_501_STABLE, php: '8.4', database: pgsql }
+          - { moodle-branch: MOODLE_502_STABLE, php: '8.3', database: mariadb }
+          - { moodle-branch: MOODLE_503_STABLE, php: '8.4', database: pgsql, coverage: true }
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+        with:
+          path: plugin
+          persist-credentials: false
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          ini-values: max_input_vars=5000, opcache.enable_cli=1, opcache.jit=disable
+          coverage: ${{ matrix.coverage && 'pcov' || 'none' }}
+
+      - name: Initialise moodle-plugin-ci
+        run: |
+          composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^4
+          echo $(cd ci/bin; pwd) >> $GITHUB_PATH
+          echo $(cd ci/vendor/bin; pwd) >> $GITHUB_PATH
+          sudo locale-gen en_AU.UTF-8
+          echo "NVM_DIR=$HOME/.nvm" >> $GITHUB_ENV
+
+      - name: Install moodle-plugin-ci
+        run: moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1
+        env:
+          DB: ${{ matrix.database }}
+          MOODLE_BRANCH: ${{ matrix.moodle-branch }}
+
+      - name: PHP Lint
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phplint
+
+      - name: PHP Mess Detector
+        continue-on-error: true
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpmd
+
+      - name: Moodle Code Checker
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpcs --max-warnings 0
+
+      - name: Moodle PHPDoc Checker
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpdoc --max-warnings 0
+
+      - name: Validating
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci validate
+
+      - name: Check upgrade savepoints
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci savepoints
+
+      - name: Mustache Lint
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci mustache
+
+      - name: Grunt
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci grunt --max-lint-warnings 0
+
+      - name: PHPUnit tests
+        if: ${{ !cancelled() && !matrix.coverage }}
+        run: moodle-plugin-ci phpunit --fail-on-warning
+
+      - name: PHPUnit tests with coverage
+        if: ${{ !cancelled() && matrix.coverage }}
+        run: |
+          plugindir=$(find moodle -maxdepth 4 -type d -path '*/admin/tool/autoflow' | head -1)
+          php moodle/admin/tool/phpunit/cli/util.php --buildcomponentconfigs
+          cd moodle
+          php -d pcov.enabled=1 vendor/bin/phpunit -c "../$plugindir" --fail-on-warning \
+            --coverage-html "$GITHUB_WORKSPACE/reports/php-coverage" \
+            --coverage-clover "$GITHUB_WORKSPACE/reports/php-coverage/clover.xml" \
+            --log-junit "$GITHUB_WORKSPACE/reports/php-coverage/junit.xml"
+
+      - name: Behat features
+        id: behat
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci behat --profile chrome --scss-deprecations
+
+      - name: Upload PHP coverage
+        if: ${{ !cancelled() && matrix.coverage }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-coverage
+          path: reports
+
+      - name: Upload Behat faildump
+        if: ${{ failure() && steps.behat.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Behat faildump (${{ join(matrix.*, ', ') }})
+          path: ${{ github.workspace }}/moodledata/behat_dump
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The engine is plain PHP: fast unit tests, coverage and mutation testing without Moodle.
+  engine:
+    name: Engine (PHPUnit + Infection)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: pcov
+      - run: composer install --no-interaction --no-progress
+      - name: Unit tests with coverage
+        run: |
+          vendor/bin/phpunit -c dev/phpunit.xml --coverage-html reports/engine-coverage \
+            --coverage-clover reports/engine-coverage/clover.xml
+      - name: Mutation testing
+        run: vendor/bin/infection --threads=max --no-progress --show-mutations --logger-github
+      - name: Collect reports
+        if: ${{ !cancelled() }}
+        run: mkdir -p reports && cp -r build/infection reports/php-mutation
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: engine-reports
+          path: reports
+
+  # The React Flow editor: types, unit tests with coverage, mutation testing, and a bundle check.
+  frontend:
+    name: Editor (Vitest + Stryker)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:coverage
+      - name: Committed bundle matches the source
+        run: |
+          npm run build
+          git diff --exit-code -- dist || { echo "frontend/dist is out of date: run npm run build and commit it."; exit 1; }
+      - run: npm run test:mutation
+      - name: Collect reports
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p ../reports
+          cp -r coverage ../reports/js-coverage
+          cp -r reports/mutation ../reports/js-mutation
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: frontend-reports
+          path: reports
+
+  # End to end in a real browser against Moodle running in moodle-docker.
+  e2e:
+    name: End to end (Playwright)
+    runs-on: ubuntu-24.04
+    env:
+      MOODLE_DOCKER_WWWROOT: ${{ github.workspace }}/moodle
+      MOODLE_DOCKER_DB: pgsql
+      MOODLE_DOCKER_PHP_VERSION: '8.3'
+      MOODLE_DOCKER_WEB_PORT: '8000'
+      MOODLE_ADMIN_PASS: ${{ github.run_id }}-e2e
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: plugin
+          persist-credentials: false
+      - name: Get Moodle and moodle-docker
+        run: |
+          git clone --depth 1 -b MOODLE_405_STABLE https://github.com/moodle/moodle.git moodle
+          git clone --depth 1 https://github.com/moodlehq/moodle-docker.git moodle-docker
+          cp moodle-docker/config.docker-template.php moodle/config.php
+          printf 'services:\n  webserver:\n    volumes:\n      - %s/plugin:/var/www/html/admin/tool/autoflow\n' "$GITHUB_WORKSPACE" > moodle-docker/local.yml
+      - name: Start Moodle
+        working-directory: moodle-docker
+        run: |
+          bin/moodle-docker-compose up -d
+          bin/moodle-docker-wait-for-db
+          bin/moodle-docker-compose exec -T webserver php admin/cli/install_database.php --agree-license \
+            --fullname="Autoflow e2e" --shortname=e2e --summary=e2e --adminpass="$MOODLE_ADMIN_PASS" --adminemail=admin@example.com
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: plugin/frontend/package-lock.json
+      - name: Run Playwright
+        working-directory: plugin/frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - name: Collect report
+        if: ${{ !cancelled() }}
+        run: mkdir -p reports && cp -r plugin/frontend/playwright-report reports/e2e && cp plugin/frontend/test-results/results.json reports/e2e/results.json
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: e2e-report
+          path: reports
+      - name: Stop Moodle
+        if: ${{ always() }}
+        working-directory: moodle-docker
+        run: bin/moodle-docker-compose down -v
+
+  # Publishes the reports and badge data to GitHub Pages from main.
+  reports:
+    name: Publish reports
+    if: ${{ github.ref == 'refs/heads/main' && !cancelled() }}
+    needs: [moodle, engine, frontend, e2e]
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
+        with:
+          path: site
+          merge-multiple: true
+          pattern: '{php-coverage,engine-reports,frontend-reports,e2e-report}'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Build badges and index
+        run: node .github/scripts/report.mjs site
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT: ${{ github.sha }}
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v5

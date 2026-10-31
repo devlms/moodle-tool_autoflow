@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<!-- The editor bundle in frontend/dist is built from frontend/src by Vite and contains these libraries. -->
+<libraries>
+  <library>
+    <location>frontend/dist</location>
+    <name>react</name>
+    <description>Bundled into the workflow editor.</description>
+    <version>19.3.1</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/facebook/react</repository>
+    <copyrights>
+      <copyright>react authors</copyright>
+    </copyrights>
+  </library>
+  <library>
+    <location>frontend/dist</location>
+    <name>react-dom</name>
+    <description>Bundled into the workflow editor.</description>
+    <version>19.3.1</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/facebook/react</repository>
+    <copyrights>
+      <copyright>react-dom authors</copyright>
+    </copyrights>
+  </library>
+  <library>
+    <location>frontend/dist</location>
+    <name>@xyflow/react</name>
+    <description>Bundled into the workflow editor.</description>
+    <version>12.12.0</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/xyflow/xyflow</repository>
+    <copyrights>
+      <copyright>@xyflow/react authors</copyright>
+    </copyrights>
+  </library>
+  <library>
+    <location>frontend/dist</location>
+    <name>@xyflow/system</name>
+    <description>Bundled into the workflow editor.</description>
+    <version>0.0.83</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/xyflow/xyflow</repository>
+    <copyrights>
+      <copyright>@xyflow/system authors</copyright>
+    </copyrights>
+  </library>
+  <library>
+    <location>frontend/dist</location>
+    <name>scheduler</name>
+    <description>Bundled into the workflow editor.</description>
+    <version>0.28.0</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/facebook/react</repository>
+    <copyrights>
+      <copyright>scheduler authors</copyright>
+    </copyrights>
+  </library>
+  <library>
+    <location>frontend/dist</location>
+    <name>zustand</name>
+    <description>Bundled into the workflow editor.</description>
+    <version>4.5.7</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/pmndrs/zustand</repository>
+    <copyrights>
+      <copyright>zustand authors</copyright>
+    </copyrights>
+  </library>
+  <library>
+    <location>frontend/dist</location>
+    <name>classcat</name>
+    <description>Bundled into the workflow editor.</description>
+    <version>5.0.5</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/jorgebucaran/classcat</repository>
+    <copyrights>
+      <copyright>classcat authors</copyright>
+    </copyrights>
+  </library>
+</libraries>

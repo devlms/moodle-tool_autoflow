@@ -1,0 +1,23 @@
+{
+    // Mutation testing for the engine. The engine is plain PHP, so this runs
+    // against phpunit.engine.xml without booting Moodle.
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": ["classes/local/engine"]
+    },
+    "phpUnit": {
+        "configDir": "dev"
+    },
+    
+    "logs": {
+        "text": "build/infection/infection.log",
+        "html": "build/infection/index.html",
+        "summaryJson": "build/infection/summary.json"
+    },
+    "mutators": {
+        "@default": true
+    },
+    "minMsi": 90,
+    "minCoveredMsi": 95,
+    "initialTestsPhpOptions": "-d pcov.enabled=1 -d pcov.directory=/app/classes"
+}

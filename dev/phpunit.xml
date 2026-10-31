@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Runs the engine tests without Moodle: fast, and what Infection mutates. Moodle's own runner runs them too. -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="../vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="../tests/local/engine/standalone_bootstrap.php"
+         colors="true"
+         failOnWarning="true"
+         failOnRisky="true">
+    <testsuites>
+        <testsuite name="engine">
+            <directory suffix="_test.php">../tests/local/engine</directory>
+        </testsuite>
+    </testsuites>
+    <coverage>
+        <include>
+            <directory suffix=".php">../classes/local/engine</directory>
+        </include>
+    </coverage>
+</phpunit>

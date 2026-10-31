@@ -1,0 +1,17 @@
+/vendor/
+/composer.lock
+node_modules/
+/frontend/coverage/
+/frontend/reports/
+/frontend/test-results/
+/frontend/playwright-report/
+/build/
+.phpunit.result.cache
+/infection.log
+.playwright-cli/
+/phpunit.xml
+.vitest/
+.stryker-tmp/
+/site/
+phpunit.xml
+!/dev/phpunit.xml
