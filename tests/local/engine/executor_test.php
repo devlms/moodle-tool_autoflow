@@ -87,6 +87,7 @@ final class executor_test extends \basic_testcase {
         $this->assertSame(['message' => 'User 5 in course 9'], $result->context['nodes']['log']);
         $this->assertSame(['relateduserid' => 5, 'courseid' => 9], $result->context['nodes']['t']);
         $this->assertSame('ok', $result->steps[1]['status']);
+        $this->assertSame(['message' => 'User 5 in course 9'], $result->steps[1]['output']);
         $this->assertSame('action.log', $result->steps[1]['type']);
     }
 
@@ -167,6 +168,7 @@ final class executor_test extends \basic_testcase {
         $this->assertSame(['t', 'b'], array_column($result->steps, 'node'));
         $this->assertSame('error', $result->steps[1]['status']);
         $this->assertSame('No mail server', $result->steps[1]['error']);
+        $this->assertSame([], $result->steps[1]['output']);
     }
 
     public function test_unknown_node_type_fails_the_run(): void {

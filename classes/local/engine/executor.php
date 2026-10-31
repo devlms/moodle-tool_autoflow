@@ -75,12 +75,12 @@ final class executor {
                 $params = template::resolve($node['data']['params'] ?? [], $context);
                 $result = $this->registry->get($node['type'])->execute($params, $context);
             } catch (node_failed $e) {
-                $steps[] = $step + ['status' => 'error', 'branch' => null, 'error' => $e->getMessage()];
+                $steps[] = $step + ['status' => 'error', 'branch' => null, 'output' => [], 'error' => $e->getMessage()];
                 return new run_result('failed', $steps, $context, $e->getMessage());
             }
             $context['nodes'][$node['id']] = $result->output;
             $context['vars'] = array_merge($context['vars'], $result->vars);
-            $steps[] = $step + ['status' => 'ok', 'branch' => $result->branch];
+            $steps[] = $step + ['status' => 'ok', 'branch' => $result->branch, 'output' => $result->output];
             array_push($queue, ...$graph->next($node['id'], $result->branch));
         }
         return new run_result('success', $steps, $context);

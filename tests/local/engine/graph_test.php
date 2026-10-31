@@ -233,4 +233,11 @@ final class graph_test extends \basic_testcase {
         $this->assertFalse(graph::is_trigger('action.trigger.x'));
         $this->assertFalse(graph::is_trigger('triggerx'));
     }
+
+    public function test_nodes_lists_every_node_in_order(): void {
+        $graph = graph::from_array(['nodes' => [self::node('t', 'trigger.manual'), self::node('a', 'action.log', ['k' => 1])],
+            'edges' => []]);
+        $this->assertSame([['id' => 't', 'type' => 'trigger.manual', 'data' => []],
+            ['id' => 'a', 'type' => 'action.log', 'data' => ['k' => 1]]], $graph->nodes());
+    }
 }

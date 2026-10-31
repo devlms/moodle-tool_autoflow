@@ -64,6 +64,8 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $items = provider::get_metadata(new collection('tool_autoflow'))->get_collection();
         $names = array_map(fn($i) => $i->get_name(), $items);
         $this->assertEqualsCanonicalizing(['tool_autoflow_run', 'tool_autoflow_workflow'], $names);
+        $run = array_values(array_filter($items, fn($i) => $i->get_name() === 'tool_autoflow_run'))[0];
+        $this->assertEqualsCanonicalizing(['userid', 'log', 'error', 'timecreated'], array_keys($run->get_privacy_fields()));
     }
 
     public function test_contexts_only_for_users_with_data(): void {
@@ -105,9 +107,9 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         global $DB;
         $system = \context_system::instance();
         provider::delete_data_for_user(new approved_contextlist($this->student, 'tool_autoflow', [$system->id]));
-        $this->assertFalse($DB->record_exists('tool_autoflow_run', ['userid' => $this->student->id]));
+        // The run log can hold the user's name and details, so the whole run goes.
+        $this->assertEquals(0, $DB->count_records('tool_autoflow_run'));
         $this->assertTrue($DB->record_exists('tool_autoflow_workflow', ['usermodified' => $this->editor->id]));
-        $this->assertEquals(1, $DB->count_records('tool_autoflow_run'));
     }
 
     public function test_delete_for_users_clears_editor_and_runas(): void {
@@ -127,7 +129,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     public function test_delete_all_users_in_system_context(): void {
         global $DB;
         provider::delete_data_for_all_users_in_context(\context_system::instance());
-        $this->assertFalse($DB->record_exists_select('tool_autoflow_run', 'userid IS NOT NULL'));
+        $this->assertEquals(0, $DB->count_records('tool_autoflow_run'));
         $this->assertFalse($DB->record_exists_select('tool_autoflow_workflow', 'usermodified <> 0 OR runasuserid IS NOT NULL'));
     }
 

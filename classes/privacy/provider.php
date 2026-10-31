@@ -47,6 +47,8 @@ class provider implements
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table('tool_autoflow_run', [
             'userid' => 'privacy:metadata:run:userid',
+            'log' => 'privacy:metadata:run:log',
+            'error' => 'privacy:metadata:run:error',
             'timecreated' => 'privacy:metadata:run:timecreated',
         ], 'privacy:metadata:run');
         $collection->add_database_table('tool_autoflow_workflow', [
@@ -140,7 +142,7 @@ class provider implements
         if ($context->contextlevel != CONTEXT_SYSTEM) {
             return;
         }
-        $DB->set_field_select('tool_autoflow_run', 'userid', null, 'userid IS NOT NULL');
+        $DB->delete_records('tool_autoflow_run');
         $DB->set_field('tool_autoflow_workflow', 'usermodified', 0);
         $DB->set_field_select('tool_autoflow_workflow', 'runasuserid', null, 'runasuserid IS NOT NULL');
     }
@@ -186,7 +188,8 @@ class provider implements
     }
 
     /**
-     * Remove user references. Runs and workflows stay; they belong to the site.
+     * Remove user data. Runs about the user are deleted, because their logs can hold the
+     * user's details. Workflows stay, as they belong to the site; only the user references go.
      *
      * @param int[] $userids
      */
@@ -196,7 +199,7 @@ class provider implements
             return;
         }
         [$insql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
-        $DB->set_field_select('tool_autoflow_run', 'userid', null, "userid $insql", $params);
+        $DB->delete_records_select('tool_autoflow_run', "userid $insql", $params);
         $DB->set_field_select('tool_autoflow_workflow', 'usermodified', 0, "usermodified $insql", $params);
         $DB->set_field_select('tool_autoflow_workflow', 'runasuserid', null, "runasuserid $insql", $params);
     }

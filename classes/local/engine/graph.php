@@ -178,6 +178,15 @@ final class graph {
     }
 
     /**
+     * All nodes, in editor order.
+     *
+     * @return array[] Each with id, type and data.
+     */
+    public function nodes(): array {
+        return $this->nodes;
+    }
+
+    /**
      * One node by id.
      *
      * @param string $id
