@@ -68,7 +68,7 @@ test('build a workflow in the editor, run it and read the run log', async ({ pag
   await expect(page.locator('.react-flow__edge')).toHaveCount(2);
 });
 
-test('a workflow without a trigger is saved as a disabled draft with the problem shown', async ({ page }) => {
+test('a workflow without a trigger or required settings is saved as a disabled draft with the problems shown', async ({ page }) => {
   await page.goto('/admin/tool/autoflow/edit.php');
   await editor(page).getByLabel('Workflow name', { exact: true }).fill(`Draft ${Date.now()}`);
   await addNode(page, 'action.log');
@@ -77,6 +77,9 @@ test('a workflow without a trigger is saved as a disabled draft with the problem
   await expect(editor(page).getByRole('status')).toHaveText('Saved');
   const problems = editor(page).getByRole('region', { name: 'Problems' });
   await expect(problems).toContainText('Add a trigger to start the workflow.');
+  // The log node has no message yet: the save says so and marks the node.
+  await expect(problems).toContainText('Fill in the required settings of the marked nodes.');
+  await expect(page.locator('.react-flow__node[data-id="action_log_1"] .tool_autoflow-node')).toHaveClass(/has-problem/);
   await expect(editor(page).getByLabel('Enabled', { exact: true })).not.toBeChecked();
 });
 

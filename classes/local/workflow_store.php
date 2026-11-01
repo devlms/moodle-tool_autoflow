@@ -19,6 +19,7 @@ namespace tool_autoflow\local;
 use tool_autoflow\local\engine\cron_expression;
 use tool_autoflow\local\engine\graph;
 use tool_autoflow\local\engine\invalid_graph;
+use tool_autoflow\local\engine\node_type;
 
 /**
  * Saves and loads workflows.
@@ -187,13 +188,19 @@ final class workflow_store {
         $errors = $graph->errors();
         $registry = node_catalogue::registry();
         $unknown = [];
+        $missing = [];
         foreach ($graph->nodes() as $node) {
             if (!$registry->has($node['type'])) {
                 $unknown[] = $node['id'];
+            } else if (!graph::is_trigger($node['type']) && self::missing_params($registry->get($node['type']), $node)) {
+                $missing[] = $node['id'];
             }
         }
         if ($unknown) {
             $errors[] = ['code' => 'unknowntype', 'nodeids' => $unknown];
+        }
+        if ($missing) {
+            $errors[] = ['code' => 'missingparam', 'nodeids' => $missing];
         }
         if ($triggertype === 'trigger.schedule' && !cron_expression::is_valid($triggerdata)) {
             $errors[] = ['code' => 'badcron', 'nodeids' => [$graph->trigger()['id']]];
@@ -202,6 +209,24 @@ final class workflow_store {
             $errors[] = ['code' => 'badevent', 'nodeids' => [$graph->trigger()['id']]];
         }
         return $errors;
+    }
+
+    /**
+     * Whether a node leaves a required setting blank. Triggers have their own checks.
+     *
+     * @param node_type $type
+     * @param array $node
+     * @return bool
+     */
+    private static function missing_params(node_type $type, array $node): bool {
+        $values = $node['data']['params'] ?? [];
+        foreach ($type->params() as $param) {
+            $value = $values[$param->name] ?? null;
+            if ($param->required && ($value === null || (is_string($value) && trim($value) === '') || $value === [])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

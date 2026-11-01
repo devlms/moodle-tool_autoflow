@@ -8,8 +8,10 @@
 .tool_autoflow-node.is-selected { border-color: #0f6cbf; box-shadow: 0 0 0 2px rgba(15, 108, 191, .3); }
 .tool_autoflow-node.has-problem { border-color: #ca3120; }
 .tool_autoflow-node-label { font-weight: 600; }
-.tool_autoflow-node-type { font-size: .75rem; color: #6a737b; }
+.tool_autoflow-node-type { font-size: .75rem; color: #6a737b; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tool_autoflow-branches { display: flex; justify-content: space-between; gap: 1rem; margin-top: .25rem; font-size: .75rem; }
 .tool_autoflow-branch { position: relative; padding-bottom: .5rem; }
+.tool_autoflow-inspector select { display: block; width: 100%; }
+.tool_autoflow-inspector .is-required::after { content: " *"; color: #ca3120; }
 .tool_autoflow-problems { margin-top: .75rem; color: #ca3120; }
 @media (max-width: 991px) { .tool_autoflow-body { grid-template-columns: 1fr; } }

@@ -13,7 +13,9 @@
 
 Build Moodle automations as workflows in a node editor, instead of writing a new plugin for every one.
 
-> **Status: alpha.** Workflows can be built, saved and run, and every layer is tested. The node library is small for now, and required node settings are only checked when the workflow runs, not when it is saved. Try it on a test site, not a production one.
+> **Status: alpha.** Workflows can be built, saved and run, and every layer is tested. The node library is still small. Try it on a test site, not a production one.
+
+![The workflow editor: an event trigger, a condition, then enrol, add to group, notify and an HTTP request](docs/screenshots/editor.png)
 
 ## Why
 
@@ -25,17 +27,22 @@ Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with th
 
 | Part | Status |
 | --- | --- |
-| Node editor (React Flow): palette, settings per node, branch handles, problems list | Done |
+| Node editor (React Flow): palette, settings per node with required fields marked, branch handles, a one-line summary on each node, problems list | Done |
 | Triggers: started by hand, on a schedule (cron, site timezone), when a Moodle event happens | Done |
-| Nodes: condition, set variable, write to run log, send notification, call a Moodle function | Done |
+| Logic: condition (Yes and No branches), set variable | Done |
+| Actions: write to the run log, send an HTTP request to another service | Done |
+| Moodle: send notification, enrol user in course, add user to group | Done |
+| Moodle: call any web service function installed on the site (the Moodle API as one node), arguments as JSON | Done |
 | Placeholders in any setting: `{{trigger.relateduserid}}`, `{{nodes.<id>.<key>}}`, `{{vars.<name>}}` | Done |
+| Save-time checks: one trigger, no loops, nothing unconnected, valid cron and event, required settings filled. A workflow with problems is kept as a disabled draft | Done |
 | Run history with each step's output or error | Done |
 | Loop protection: a workflow that fires its own trigger stops after 3 levels | Done |
-| Privacy provider and capabilities | Done |
 | Runs as the user who saved it last, so a workflow never exceeds that person's permissions | Done |
-| Node: call any Moodle web service function (the Moodle API as nodes), arguments as JSON with placeholders | Done |
-| Node: HTTP request to an external service | Planned |
-| More Moodle nodes: enrol, add to group, grade, course actions | Planned |
+| Privacy provider and capabilities | Done |
+| Choose the run-as user explicitly | Planned |
+| More nodes: grades, course actions, cohorts, loops over lists | Planned |
+
+![Run history: each step with its output](docs/screenshots/run-history.png)
 
 ## How a workflow runs
 
@@ -43,6 +50,14 @@ Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with th
 2. An ad hoc task is queued as the workflow's run-as user, so the work never happens inside someone's page request.
 3. The engine walks the graph from the trigger. Each node gets its settings with placeholders filled in, and a condition picks which branch continues.
 4. The run, with every step's output, is saved to the run history. A node that fails stops the run and records why.
+
+## Safety
+
+- **Permissions.** A workflow runs as the user who saved it last. Every Moodle node goes through the same capability checks as Moodle's web services, so enrolling someone needs `enrol/manual:enrol`, adding to a group needs `moodle/course:managegroups`, and so on.
+- **No code in placeholders.** Placeholder values are filled into each setting separately, never pasted into JSON text, so trigger data such as a user's name cannot add or change arguments.
+- **HTTP requests** go through Moodle's own curl class, so the site's HTTP security settings (blocked hosts and allowed ports, which block local and private addresses by default) apply to the first URL and to every redirect. Only http and https, GET, POST, PUT, PATCH and DELETE. Requests time out after 15 seconds, follow at most 3 redirects, and keep at most 256 KB of the answer. Header names and values are checked so a placeholder cannot add a header of its own. An answer of 400 or more fails the step.
+- **Events never slow a page.** One observer catches every event with a single cached lookup. The workflow runs later in an ad hoc task.
+- **Loops stop.** A workflow whose own action fires its trigger again stops after 3 levels.
 
 ## How it is built
 

@@ -1,0 +1,6 @@
+.tool_autoflow-runs pre {
+    max-height: 16rem;
+    overflow: auto;
+    background-color: #f8f9fa;
+    padding: .5rem;
+}

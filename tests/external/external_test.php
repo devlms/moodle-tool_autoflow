@@ -48,8 +48,18 @@ final class external_test extends \advanced_testcase {
         $this->assertSame(['nodes' => [], 'edges' => []], json_decode($result['graph'], true));
 
         $types = array_column(json_decode($result['nodetypes'], true), null, 'type');
-        $this->assertSame(['trigger.manual', 'trigger.schedule', 'trigger.event', 'logic.condition', 'logic.set', 'action.log',
-            'moodle.send_notification', 'moodle.call_function'], array_keys($types));
+        $this->assertSame(
+            ['trigger.manual', 'trigger.schedule', 'trigger.event', 'logic.condition', 'logic.set', 'action.log',
+            'action.http', 'moodle.send_notification', 'moodle.enrol_user', 'moodle.add_to_group', 'moodle.call_function'],
+            array_keys($types)
+        );
+        foreach ($types as $type => $info) {
+            $this->assertNotSame($type, $info['label'], "$type has no label");
+            foreach ($info['params'] as $param) {
+                $this->assertNotSame($param['name'], $param['label'], "{$param['name']} of $type has no label");
+            }
+        }
+        $this->assertSame('GET', $types['action.http']['params'][0]['optionlabels']['get']);
         $condition = $types['logic.condition'];
         $this->assertSame('Condition', $condition['label']);
         $this->assertSame('logic', $condition['category']);
@@ -80,7 +90,8 @@ final class external_test extends \advanced_testcase {
     }
 
     public function test_save_returns_errors_for_a_draft(): void {
-        $draft = json_encode(['nodes' => [['id' => 'a', 'type' => 'action.log', 'data' => []]], 'edges' => []]);
+        $draft = json_encode(['nodes' => [['id' => 'a', 'type' => 'action.log', 'data' => ['params' => ['message' => 'x']]]],
+            'edges' => []]);
         $result = external_api::clean_returnvalue(
             save_workflow::execute_returns(),
             save_workflow::execute(0, 'Draft', $draft, true)
@@ -130,7 +141,7 @@ final class external_test extends \advanced_testcase {
     public function test_every_error_code_has_a_message(): void {
         foreach (
             ['notrigger', 'manytriggers', 'duplicateid', 'danglingedge', 'cycle', 'unreachable', 'unknowntype', 'badcron',
-                'badevent'] as $code
+                'badevent', 'missingparam'] as $code
         ) {
             $this->assertTrue(get_string_manager()->string_exists("error:$code", 'tool_autoflow'), $code);
         }

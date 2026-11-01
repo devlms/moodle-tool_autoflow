@@ -56,6 +56,9 @@ class provider implements
             'runasuserid' => 'privacy:metadata:workflow:runasuserid',
             'timemodified' => 'privacy:metadata:workflow:timemodified',
         ], 'privacy:metadata:workflow');
+        $collection->add_external_location_link('httprequest', [
+            'data' => 'privacy:metadata:httprequest:data',
+        ], 'privacy:metadata:httprequest');
         return $collection;
     }
 

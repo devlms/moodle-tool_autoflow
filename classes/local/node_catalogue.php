@@ -21,7 +21,10 @@ use tool_autoflow\local\engine\nodes\log_node;
 use tool_autoflow\local\engine\nodes\set_variable_node;
 use tool_autoflow\local\engine\nodes\trigger_node;
 use tool_autoflow\local\engine\registry;
+use tool_autoflow\local\nodes\add_to_group_node;
 use tool_autoflow\local\nodes\call_function_node;
+use tool_autoflow\local\nodes\enrol_user_node;
+use tool_autoflow\local\nodes\http_request_node;
 use tool_autoflow\local\nodes\send_notification_node;
 
 /**
@@ -45,7 +48,10 @@ final class node_catalogue {
             new condition_node(),
             new set_variable_node(),
             new log_node(),
+            new http_request_node(),
             new send_notification_node(),
+            new enrol_user_node(),
+            new add_to_group_node(),
             new call_function_node(),
         );
     }

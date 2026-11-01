@@ -61,10 +61,12 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         ]);
     }
 
-    public function test_metadata_lists_both_tables(): void {
+    public function test_metadata_lists_both_tables_and_the_http_node(): void {
         $items = provider::get_metadata(new collection('tool_autoflow'))->get_collection();
         $names = array_map(fn($i) => $i->get_name(), $items);
-        $this->assertEqualsCanonicalizing(['tool_autoflow_run', 'tool_autoflow_workflow'], $names);
+        $this->assertEqualsCanonicalizing(['tool_autoflow_run', 'tool_autoflow_workflow', 'httprequest'], $names);
+        $http = array_values(array_filter($items, fn($i) => $i->get_name() === 'httprequest'))[0];
+        $this->assertInstanceOf(\core_privacy\local\metadata\types\external_location::class, $http);
         $run = array_values(array_filter($items, fn($i) => $i->get_name() === 'tool_autoflow_run'))[0];
         $this->assertEqualsCanonicalizing(['userid', 'log', 'error', 'timecreated'], array_keys($run->get_privacy_fields()));
     }

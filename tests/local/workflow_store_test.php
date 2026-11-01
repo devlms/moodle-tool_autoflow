@@ -72,7 +72,8 @@ final class workflow_store_test extends \advanced_testcase {
     }
 
     public function test_invalid_graph_is_saved_as_a_disabled_draft(): void {
-        $draft = json_encode(['nodes' => [['id' => 'a', 'type' => 'action.log', 'data' => []]], 'edges' => []]);
+        $draft = json_encode(['nodes' => [['id' => 'a', 'type' => 'action.log', 'data' => ['params' => ['message' => 'x']]]],
+            'edges' => []]);
         $result = workflow_store::save(0, 'Half built', $draft, true);
         $this->assertFalse($result['enabled']);
         $this->assertSame(['notrigger'], array_column($result['errors'], 'code'));
@@ -85,6 +86,24 @@ final class workflow_store_test extends \advanced_testcase {
         $result = workflow_store::save(0, 'Broken', $graph, true);
         $this->assertFalse($result['enabled']);
         $this->assertSame([['code' => 'unknowntype', 'nodeids' => ['x']]], $result['errors']);
+    }
+
+    public function test_required_settings_are_checked_on_save(): void {
+        $graph = json_encode([
+            'nodes' => [
+                ['id' => 't', 'type' => 'trigger.manual'],
+                ['id' => 'log', 'type' => 'action.log', 'data' => ['params' => ['message' => '  ']]],
+                ['id' => 'mail', 'type' => 'moodle.send_notification',
+                    'data' => ['params' => ['userid' => '{{trigger.userid}}', 'subject' => 'Hi']]],
+                ['id' => 'if', 'type' => 'logic.condition', 'data' => ['params' => ['left' => '0', 'operator' => 'empty']]],
+            ],
+            'edges' => [['source' => 't', 'target' => 'log'], ['source' => 'log', 'target' => 'mail'],
+                ['source' => 'mail', 'target' => 'if']],
+        ]);
+        $result = workflow_store::save(0, 'Half filled', $graph, true);
+        $this->assertFalse($result['enabled']);
+        // A blank value is missing, a placeholder counts as filled, "0" is a value, and optional settings may be left out.
+        $this->assertSame([['code' => 'missingparam', 'nodeids' => ['log', 'mail']]], $result['errors']);
     }
 
     public function test_schedule_trigger_copies_the_cron_and_checks_it(): void {

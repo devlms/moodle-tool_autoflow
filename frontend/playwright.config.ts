@@ -5,6 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: false,
+  // A busy machine can set PW_SLOW=1 to give every step more time.
+  timeout: process.env.PW_SLOW ? 180_000 : 30_000,
+  expect: { timeout: process.env.PW_SLOW ? 30_000 : 5_000 },
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }], ['json', { outputFile: 'test-results/results.json' }]],
   use: {

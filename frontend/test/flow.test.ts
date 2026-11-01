@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { fromFlow, newNode, toFlow, connectionToEdge } from '../src/flow';
+import { fromFlow, newNode, toFlow, connectionToEdge, nodeSummary } from '../src/flow';
+import type { NodeTypeInfo } from '../src/types';
 
 const graph = {
   nodes: [
@@ -65,5 +66,40 @@ describe('connectionToEdge', () => {
       source: 't',
       target: 'a',
     });
+  });
+});
+
+describe('nodeSummary', () => {
+  const http: NodeTypeInfo = {
+    type: 'action.http', label: 'HTTP', description: '', category: 'action', branches: [],
+    params: [
+      { name: 'method', kind: 'select', required: true, options: ['get', 'post'], label: 'Method', optionlabels: { post: 'POST' } },
+      { name: 'url', kind: 'text', required: true, options: [], label: 'URL', optionlabels: {} },
+      { name: 'body', kind: 'json', required: false, options: [], label: 'Body', optionlabels: {} },
+    ],
+  };
+
+  it('joins the filled settings in order, with option labels, skipping JSON', () => {
+    expect(nodeSummary(http, { method: 'post', url: 'https://x.test/a', body: { a: 1 } })).toBe('POST https://x.test/a');
+  });
+
+  it('uses the raw value when an option has no label, and numbers as text', () => {
+    expect(nodeSummary(http, { method: 'get', url: 5 })).toBe('get 5');
+  });
+
+  it('skips blank values', () => {
+    expect(nodeSummary(http, { method: '', url: '  https://x.test ' })).toBe('https://x.test');
+  });
+
+  it('cuts long summaries', () => {
+    const summary = nodeSummary(http, { url: 'https://example.com/' + 'a'.repeat(80) });
+    expect(summary).toHaveLength(48);
+    expect(summary.endsWith('…')).toBe(true);
+    expect(nodeSummary(http, { url: 'b'.repeat(48) })).toBe('b'.repeat(48));
+  });
+
+  it('is empty without settings or a known type', () => {
+    expect(nodeSummary(http, {})).toBe('');
+    expect(nodeSummary(undefined, { url: 'x' })).toBe('');
   });
 });

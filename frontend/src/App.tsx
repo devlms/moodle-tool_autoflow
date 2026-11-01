@@ -2,6 +2,7 @@ import {
   Background,
   Controls,
   Handle,
+  MarkerType,
   Position,
   ReactFlow,
   useEdgesState,
@@ -11,7 +12,7 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { connectionToEdge, fromFlow, newNode, toFlow, type FlowNode } from './flow';
+import { connectionToEdge, fromFlow, newNode, nodeSummary, toFlow, type FlowNode } from './flow';
 import { isTrigger, validateGraph } from './graph';
 import type { Client, EditorData, NodeTypeInfo, ParamInfo, SaveProblem } from './types';
 
@@ -29,11 +30,12 @@ function NodeView({ id, data, selected }: NodeProps<FlowNode>) {
   const info = types.get(data.nodetype);
   const branches = info?.branches ?? [];
   const classes = ['tool_autoflow-node', selected ? 'is-selected' : '', marked.has(id) ? 'has-problem' : ''];
+  const summary = nodeSummary(info, data.params) || data.nodetype;
   return (
     <div data-testid={`node-${id}`} className={classes.filter(Boolean).join(' ')}>
       {!isTrigger(data.nodetype) && <Handle type="target" position={Position.Top} />}
       <div className="tool_autoflow-node-label">{info?.label ?? data.nodetype}</div>
-      <div className="tool_autoflow-node-type">{data.nodetype}</div>
+      <div className="tool_autoflow-node-type" title={summary}>{summary}</div>
       {branches.length === 0 ? (
         <Handle type="source" position={Position.Bottom} />
       ) : (
@@ -58,8 +60,8 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
  * Function arguments: a JSON object. It is stored as an object once the text parses, so
  * placeholders are filled value by value on the server. Until then the text is kept as is.
  */
-function JsonField({ id, value, onChange, invalid }: {
-  id: string; value: unknown; onChange: (v: unknown) => void; invalid: string;
+function JsonField({ id, value, onChange, invalid, required }: {
+  id: string; value: unknown; onChange: (v: unknown) => void; invalid: string; required: boolean;
 }) {
   const [text, setText] = useState(isObject(value) ? JSON.stringify(value, null, 2) : String(value ?? ''));
   let parsed: unknown;
@@ -71,7 +73,7 @@ function JsonField({ id, value, onChange, invalid }: {
   const valid = text.trim() === '' || isObject(parsed);
   return (
     <>
-      <textarea id={id} className="form-control font-monospace" rows={6} value={text}
+      <textarea id={id} className="form-control font-monospace" rows={6} value={text} required={required}
         onChange={(e) => {
           setText(e.target.value);
           let next: unknown = e.target.value;
@@ -95,12 +97,12 @@ function ParamField({ param, value, onChange, strings }: {
   const text = value === undefined || value === null ? '' : String(value);
   let input;
   if (param.kind === 'json') {
-    input = <JsonField id={id} value={value} onChange={onChange} invalid={strings.invalidjson} />;
+    input = <JsonField id={id} value={value} onChange={onChange} invalid={strings.invalidjson} required={param.required} />;
   } else if (param.kind === 'textarea') {
-    input = <textarea id={id} className="form-control" rows={4} value={text} onChange={(e) => onChange(e.target.value)} />;
+    input = <textarea id={id} className="form-control" rows={4} value={text} required={param.required} onChange={(e) => onChange(e.target.value)} />;
   } else if (param.kind === 'select') {
     input = (
-      <select id={id} className="form-select" value={text} onChange={(e) => onChange(e.target.value)}>
+      <select id={id} className="form-select" value={text} required={param.required} onChange={(e) => onChange(e.target.value)}>
         <option value="">{strings.choose}</option>
         {param.options.map((o) => (
           <option key={o} value={o}>{param.optionlabels[o] ?? o}</option>
@@ -110,11 +112,12 @@ function ParamField({ param, value, onChange, strings }: {
   } else {
     const lists: Record<string, string> = { event: 'tool_autoflow-events', function: 'tool_autoflow-functions' };
     const list = lists[param.kind];
-    input = <input id={id} className="form-control" list={list} value={text} onChange={(e) => onChange(e.target.value)} />;
+    input = <input id={id} className="form-control" list={list} value={text} required={param.required}
+      onChange={(e) => onChange(e.target.value)} />;
   }
   return (
     <div className="mb-2">
-      <label htmlFor={id} className="form-label">{param.label}</label>
+      <label htmlFor={id} className={param.required ? 'form-label is-required' : 'form-label'}>{param.label}</label>
       {input}
     </div>
   );
@@ -234,6 +237,7 @@ export function App({ client, workflowid }: AppProps) {
             <ReactFlow nodes={nodes.map((n) => ({ ...n, selected: n.id === selected }))} edges={edges} nodeTypes={nodeTypes}
               onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
               onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView
+              defaultEdgeOptions={{ markerEnd: { type: MarkerType.ArrowClosed } }}
               fitViewOptions={{ maxZoom: 1 }}>
               <Background />
               <Controls />

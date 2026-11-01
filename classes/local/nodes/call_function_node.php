@@ -78,6 +78,19 @@ final class call_function_node implements node_type {
         if (!is_array($args)) {
             throw new node_failed('The arguments must be a JSON object.');
         }
+        return new node_result(['result' => self::call($function, $args)]);
+    }
+
+    /**
+     * Call a web service function as the current user, the way the web service layer does.
+     *
+     * Other Moodle nodes use this too, so they get the same validation and capability checks.
+     *
+     * @param string $function
+     * @param array $args
+     * @return mixed The cleaned result.
+     */
+    public static function call(string $function, array $args): mixed {
         try {
             $info = external_api::external_function_info($function);
             $values = array_values(external_api::validate_parameters($info->parameters_desc, $args));
@@ -88,6 +101,6 @@ final class call_function_node implements node_type {
         } catch (\Throwable $e) {
             throw new node_failed("$function: " . $e->getMessage());
         }
-        return new node_result(['result' => $result]);
+        return $result;
     }
 }

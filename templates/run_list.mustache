@@ -38,7 +38,7 @@
     {{#runs}}
     <details class="mb-2 border rounded p-2" data-runid="{{id}}" data-status="{{status}}" data-testid="run">
         <summary>
-            <span class="badge {{#success}}bg-success{{/success}}{{^success}}bg-danger{{/success}}">{{statuslabel}}</span>
+            <span class="badge text-white {{#success}}badge-success bg-success{{/success}}{{^success}}badge-danger bg-danger{{/success}}">{{statuslabel}}</span>
             {{time}} &middot; {{trigger}}
         </summary>
         {{#error}}<p class="text-danger mt-2">{{error}}</p>{{/error}}

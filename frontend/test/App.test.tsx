@@ -216,7 +216,10 @@ describe('App', () => {
     expect(screen.getByTestId('node-a').querySelectorAll('.react-flow__handle-top')).toHaveLength(1);
     const branches = screen.getByTestId('node-if').querySelectorAll('.react-flow__handle-bottom');
     expect([...branches].map((h) => h.getAttribute('data-handleid'))).toEqual(['true', 'false']);
-    expect(screen.getByTestId('node-a')).toHaveTextContent('action.log');
+    // A node shows what its settings say; one with no settings shows its type.
+    expect(screen.getByTestId('node-a')).toHaveTextContent('one');
+    expect(screen.getByTestId('node-a').querySelector('.tool_autoflow-node-type')).toHaveAttribute('title', 'one');
+    expect(screen.getByTestId('node-t')).toHaveTextContent('trigger.manual');
   });
 
   it('marks the selected node and moves the selection', async () => {
@@ -314,6 +317,10 @@ describe('App', () => {
     const client = await renderApp();
     await user.click(screen.getByTestId('palette-moodle.call_function'));
     expect(screen.getByLabelText('FUNCTION')).toHaveAttribute('list', 'tool_autoflow-functions');
+    expect(screen.getByLabelText('FUNCTION')).toBeRequired();
+    expect(screen.getByLabelText('ARGS')).not.toBeRequired();
+    expect(document.querySelector('label[for="tool_autoflow-param-function"]')).toHaveClass('is-required');
+    expect(document.querySelector('label[for="tool_autoflow-param-args"]')).not.toHaveClass('is-required');
     expect(document.querySelector('#tool_autoflow-functions option')).toHaveAttribute('value', 'core_webservice_get_site_info');
     await user.type(screen.getByLabelText('FUNCTION'), 'core_user_get_users_by_field');
 
