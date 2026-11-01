@@ -151,9 +151,15 @@ final class http_request_node implements node_type {
         if (!in_array($scheme, ['http', 'https'], true) || !parse_url($url, PHP_URL_HOST)) {
             throw new node_failed("The URL must start with http or https: \"$url\".");
         }
-        $body = $params['body'] ?? '';
-        $jsonbody = is_array($body) && $body !== [];
-        $payload = $jsonbody ? json_encode($body) : (is_array($body) ? '' : (string) $body);
+        $body = $params['body'] ?? [];
+        if (is_string($body) && trim($body) === '') {
+            $body = [];
+        }
+        if (!is_array($body) || ($body && array_is_list($body))) {
+            throw new node_failed('The body must be a JSON object.');
+        }
+        $jsonbody = $body !== [];
+        $payload = $jsonbody ? json_encode($body) : '';
         $headers = self::header_lines($params['headers'] ?? [], $jsonbody);
 
         $curl = $this->makecurl ? ($this->makecurl)() : self::make_curl();

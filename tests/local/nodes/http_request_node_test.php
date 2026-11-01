@@ -60,6 +60,21 @@ final class http_request_node_test extends \advanced_testcase {
         $this->assertNull($output['json']);
     }
 
+    public function test_body_must_be_a_json_object(): void {
+        // The editor keeps text that is not yet valid JSON as a string: that must not be sent as if it were JSON.
+        foreach (['{"a": ', 'plain text', '[1, 2]'] as $body) {
+            try {
+                $this->run_node(['method' => 'post', 'url' => 'https://example.com/', 'body' => $body]);
+                $this->fail("Sent $body");
+            } catch (node_failed $e) {
+                $this->assertSame('The body must be a JSON object.', $e->getMessage());
+            }
+        }
+        // An empty body is fine.
+        \curl::mock_response('{}');
+        $this->assertSame(200, $this->run_node(['method' => 'delete', 'url' => 'https://example.com/', 'body' => ' '])['status']);
+    }
+
     public function test_method_defaults_to_get(): void {
         \curl::mock_response('{}');
         $this->assertSame(200, $this->run_node(['url' => 'https://example.com/'])['status']);
