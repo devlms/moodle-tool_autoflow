@@ -54,6 +54,7 @@ class save_workflow extends external_api {
      * @param string $name
      * @param string $graph
      * @param bool $enabled
+     * @param int $runasuserid User the workflow runs as, 0 for the person saving.
      * @return array
      */
     public static function execute(int $id, string $name, string $graph, bool $enabled, int $runasuserid = 0): array {
