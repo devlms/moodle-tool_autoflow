@@ -28,11 +28,12 @@ const strings: Record<string, string> = {
   save: 'Save', saved: 'Saved', runnow: 'Run now', runqueued: 'Run queued', enabled: 'Enabled', workflowname: 'Workflow name',
   palette: 'Add a node', nodesettings: 'Node settings', selectnode: 'Select a node', deletenode: 'Delete node', problems: 'Problems',
   saving: 'Saving...', savefailed: 'Could not save', 'branch:true': 'Yes', 'branch:false': 'No', choose: 'Choose...',
-  workflowruns: 'Run history', invalidjson: 'Not valid JSON yet', 'cat:trigger': 'Triggers', 'cat:logic': 'Logic', 'cat:action': 'Actions', 'cat:moodle': 'Moodle',
+  workflowruns: 'Run history', runsas: 'Runs as', runasuserid: 'Runs as (user id)', invalidjson: 'Not valid JSON yet', 'cat:trigger': 'Triggers', 'cat:logic': 'Logic', 'cat:action': 'Actions', 'cat:moodle': 'Moodle',
 };
 
 const data = (overrides: Partial<EditorData> = {}): EditorData => ({
   id: 0, name: '', enabled: false, graph: { nodes: [], edges: [] }, nodetypes, events: ['\\core\\event\\user_created'], functions: ['core_webservice_get_site_info'], strings,
+  runasuserid: 2, runasname: 'Admin User', canchooserunas: false,
   ...overrides,
 });
 
@@ -121,6 +122,37 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Add a trigger.')).toBeInTheDocument();
     expect(screen.getByLabelText('Enabled')).not.toBeChecked();
+  });
+
+  it('shows who the workflow runs as and saves it as the current user without login as', async () => {
+    const user = userEvent.setup();
+    const client = await renderApp();
+    expect(screen.getByTestId('runas')).toHaveTextContent('Runs as Admin User');
+    expect(screen.queryByLabelText('Runs as (user id)')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect((client.save as ReturnType<typeof vi.fn>).mock.calls[0][0].runasuserid).toBe(0);
+  });
+
+  it('lets someone with login as pick the run-as user', async () => {
+    const user = userEvent.setup();
+    const client = fakeClient(data({ canchooserunas: true, runasuserid: 5, runasname: 'Tess Teacher' }));
+    client.save.mockResolvedValue({ id: 7, enabled: true, errors: [], runasuserid: 9, runasname: 'Sam Student' });
+    await renderApp(client);
+    const field = screen.getByLabelText('Runs as (user id)');
+    expect(field).toHaveValue(5);
+    expect(screen.getByTestId('runas')).toHaveTextContent('Tess Teacher');
+    await user.clear(field);
+    await user.type(field, '9');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect((client.save as ReturnType<typeof vi.fn>).mock.calls[0][0].runasuserid).toBe(9);
+    expect(screen.getByTestId('runas')).toHaveTextContent('Sam Student');
+
+    // A blank field means the person saving.
+    await user.clear(field);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect((client.save as ReturnType<typeof vi.fn>).mock.calls[1][0].runasuserid).toBe(0));
   });
 
   it('shows a save failure', async () => {

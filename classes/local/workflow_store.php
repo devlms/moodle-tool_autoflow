@@ -27,9 +27,11 @@ use tool_autoflow\local\engine\node_type;
  * The trigger type and its setting (event or cron) are copied out of the graph
  * on save, so the event observer and the schedule task never parse graphs.
  *
- * A workflow runs as the user who saved it last. It can never do more than that
- * person is allowed to do, and a manager who edits an admin's workflow brings it
- * down to their own permissions.
+ * A workflow runs as the user who saved it last, unless the person saving picks
+ * someone else. Picking another user needs moodle/user:loginas, the permission
+ * Moodle already uses for acting as someone, and picking a site administrator
+ * needs a site administrator. So a manager who edits an admin's workflow brings it
+ * down to their own permissions, and can never raise a workflow above them.
  *
  * @package    tool_autoflow
  * @copyright  2026 DevLMS <contact@devlms.com>
@@ -46,14 +48,16 @@ final class workflow_store {
      * @param string $name
      * @param string $graphjson
      * @param bool $enabled What the user asked for. Ignored if the graph has errors.
-     * @return array id, enabled and errors (each with code and node ids).
+     * @param int $runasuserid User the workflow runs as; 0 for the person saving.
+     * @return array id, enabled, runasuserid and errors (each with code and node ids).
      */
-    public static function save(int $id, string $name, string $graphjson, bool $enabled): array {
+    public static function save(int $id, string $name, string $graphjson, bool $enabled, int $runasuserid = 0): array {
         global $DB, $USER;
         $name = trim($name);
         if ($name === '') {
             throw new \invalid_parameter_exception('A workflow needs a name.');
         }
+        $runasuserid = self::check_run_as($runasuserid ?: (int) $USER->id);
         try {
             $graph = graph::from_json($graphjson);
         } catch (invalid_graph $e) {
@@ -70,7 +74,7 @@ final class workflow_store {
             'triggertype' => $triggertype,
             'triggerdata' => $triggerdata,
             'usermodified' => $USER->id,
-            'runasuserid' => $USER->id,
+            'runasuserid' => $runasuserid,
             'timemodified' => time(),
         ];
         if ($id) {
@@ -81,7 +85,7 @@ final class workflow_store {
             $id = (int) $DB->insert_record('tool_autoflow_workflow', $record);
         }
         self::forget_event_map();
-        return ['id' => (int) $id, 'enabled' => $enabled, 'errors' => $errors];
+        return ['id' => (int) $id, 'enabled' => $enabled, 'runasuserid' => $runasuserid, 'errors' => $errors];
     }
 
     /**
@@ -146,6 +150,28 @@ final class workflow_store {
             'id',
             'id, triggerdata, lastscheduled'
         );
+    }
+
+    /**
+     * Whether the current user may make a workflow run as this user.
+     *
+     * @param int $userid
+     * @return int The user id.
+     */
+    private static function check_run_as(int $userid): int {
+        global $USER;
+        $user = \core_user::get_user($userid);
+        if (!$user || $user->deleted || $user->suspended || isguestuser($user)) {
+            throw new \invalid_parameter_exception("No active user with id $userid.");
+        }
+        if ((int) $user->id === (int) $USER->id) {
+            return $userid;
+        }
+        require_capability('moodle/user:loginas', \context_system::instance());
+        if (is_siteadmin($user) && !is_siteadmin($USER)) {
+            throw new \invalid_parameter_exception('Only a site administrator can make a workflow run as a site administrator.');
+        }
+        return $userid;
     }
 
     /**

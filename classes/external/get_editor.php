@@ -36,7 +36,7 @@ class get_editor extends external_api {
     private const STRINGS = ['save', 'saved', 'runnow', 'runqueued', 'enabled', 'workflowname', 'palette', 'nodesettings',
         'selectnode', 'deletenode', 'problems', 'saving', 'savefailed', 'branch:true', 'branch:false', 'choose', 'workflowruns',
         'cat:trigger', 'cat:logic', 'cat:action', 'cat:moodle', 'error:notrigger', 'error:manytriggers', 'error:duplicateid',
-        'error:danglingedge', 'error:cycle', 'error:unreachable', 'invalidjson'];
+        'error:danglingedge', 'error:cycle', 'error:unreachable', 'invalidjson', 'runsas', 'runasuserid'];
 
     /**
      * Parameters.
@@ -61,8 +61,11 @@ class get_editor extends external_api {
         self::validate_context($context);
         require_capability('tool/autoflow:manage', $context);
 
+        global $USER;
         $workflow = $workflowid ? workflow_store::get($workflowid)
-            : (object) ['id' => 0, 'name' => '', 'enabled' => 0, 'graph' => json_encode(['nodes' => [], 'edges' => []])];
+            : (object) ['id' => 0, 'name' => '', 'enabled' => 0, 'graph' => json_encode(['nodes' => [], 'edges' => []]),
+                'runasuserid' => $USER->id];
+        $runas = \core_user::get_user((int) $workflow->runasuserid) ?: $USER;
         $strings = [];
         foreach (self::STRINGS as $key) {
             $strings[$key] = get_string($key, 'tool_autoflow');
@@ -76,6 +79,9 @@ class get_editor extends external_api {
             'events' => json_encode(node_catalogue::events()),
             'functions' => json_encode(node_catalogue::functions()),
             'strings' => json_encode($strings),
+            'runasuserid' => (int) $runas->id,
+            'runasname' => fullname($runas),
+            'canchooserunas' => has_capability('moodle/user:loginas', $context),
         ];
     }
 
@@ -94,6 +100,9 @@ class get_editor extends external_api {
             'events' => new external_value(PARAM_RAW, 'Event class names JSON'),
             'functions' => new external_value(PARAM_RAW, 'Web service function names JSON'),
             'strings' => new external_value(PARAM_RAW, 'Interface strings JSON'),
+            'runasuserid' => new external_value(PARAM_INT, 'User the workflow runs as'),
+            'runasname' => new external_value(PARAM_TEXT, 'Full name of that user'),
+            'canchooserunas' => new external_value(PARAM_BOOL, 'Whether the current user may pick another run-as user'),
         ]);
     }
 }

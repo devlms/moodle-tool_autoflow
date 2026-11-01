@@ -194,4 +194,65 @@ final class workflow_store_test extends \advanced_testcase {
         workflow_store::save($id, 'Mine', self::graph(), true);
         $this->assertEquals($manager->id, workflow_store::get($id)->runasuserid);
     }
+
+    public function test_run_as_another_user_needs_login_as(): void {
+        $teacher = $this->getDataGenerator()->create_user();
+        $id = workflow_store::save(0, 'As teacher', self::graph(), true, (int) $teacher->id)['id'];
+        $this->assertEquals($teacher->id, workflow_store::get($id)->runasuserid);
+        $this->assertEquals(get_admin()->id, workflow_store::get($id)->usermodified);
+
+        // A manager without moodle/user:loginas can only run workflows as themselves.
+        $manager = $this->getDataGenerator()->create_user();
+        $this->setUser($manager);
+        try {
+            workflow_store::save($id, 'As teacher', self::graph(), true, (int) $teacher->id);
+            $this->fail('Picked another user without login as');
+        } catch (\required_capability_exception $e) {
+            $this->assertSame('nopermissions', $e->errorcode);
+            $this->assertStringContainsString('Log in as other users', $e->getMessage());
+        }
+        workflow_store::save($id, 'As teacher', self::graph(), true, (int) $manager->id);
+        $this->assertEquals($manager->id, workflow_store::get($id)->runasuserid);
+    }
+
+    public function test_only_a_site_admin_can_pick_a_site_admin(): void {
+        $manager = $this->getDataGenerator()->create_user();
+        $role = $this->getDataGenerator()->create_role();
+        assign_capability('moodle/user:loginas', CAP_ALLOW, $role, \context_system::instance());
+        $this->getDataGenerator()->role_assign($role, $manager->id, \context_system::instance());
+        $teacher = $this->getDataGenerator()->create_user();
+        $this->setUser($manager);
+
+        $id = workflow_store::save(0, 'As teacher', self::graph(), true, (int) $teacher->id)['id'];
+        $this->assertEquals($teacher->id, workflow_store::get($id)->runasuserid);
+
+        $this->expectException(\invalid_parameter_exception::class);
+        $this->expectExceptionMessage('Only a site administrator can make a workflow run as a site administrator.');
+        workflow_store::save($id, 'As admin', self::graph(), true, (int) get_admin()->id);
+    }
+
+    public function test_run_as_user_must_be_active(): void {
+        $gen = $this->getDataGenerator();
+        $cases = [
+            'missing' => 999999,
+            'deleted' => (int) $gen->create_user(['deleted' => 1])->id,
+            'suspended' => (int) $gen->create_user(['suspended' => 1])->id,
+            'guest' => (int) guest_user()->id,
+        ];
+        foreach ($cases as $case => $userid) {
+            try {
+                workflow_store::save(0, 'X', self::graph(), true, $userid);
+                $this->fail("Accepted a $case user");
+            } catch (\invalid_parameter_exception $e) {
+                $this->assertStringContainsString("No active user with id $userid", $e->getMessage(), $case);
+            }
+        }
+    }
+
+    public function test_run_as_the_saver_needs_no_extra_permission(): void {
+        $manager = $this->getDataGenerator()->create_user();
+        $this->setUser($manager);
+        $id = workflow_store::save(0, 'Mine', self::graph(), true, (int) $manager->id)['id'];
+        $this->assertEquals($manager->id, workflow_store::get($id)->runasuserid);
+    }
 }

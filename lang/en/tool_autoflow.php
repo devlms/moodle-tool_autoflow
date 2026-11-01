@@ -121,6 +121,7 @@ $string['run:error'] = 'Error';
 $string['run:status'] = 'Status';
 $string['run:steps'] = 'Steps';
 $string['run:trigger'] = 'Started by';
+$string['runasuserid'] = 'Runs as (user id)';
 $string['runnow'] = 'Run now';
 $string['runqueued'] = 'Run queued. It starts with the next cron run.';
 $string['runs'] = 'Runs';

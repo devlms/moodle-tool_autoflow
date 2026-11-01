@@ -114,6 +114,45 @@ final class external_test extends \advanced_testcase {
         $this->assertSame('Ok', workflow_store::get($result['id'])->name);
     }
 
+    public function test_editor_reports_who_the_workflow_runs_as(): void {
+        $new = external_api::clean_returnvalue(get_editor::execute_returns(), get_editor::execute(0));
+        $this->assertEquals(get_admin()->id, $new['runasuserid']);
+        $this->assertSame(fullname(get_admin()), $new['runasname']);
+        $this->assertTrue($new['canchooserunas']);
+
+        $teacher = $this->getDataGenerator()->create_user(['firstname' => 'Tess', 'lastname' => 'Teacher']);
+        $id = workflow_store::save(0, 'T', workflow_store_test::graph(), true, (int) $teacher->id)['id'];
+        $saved = external_api::clean_returnvalue(get_editor::execute_returns(), get_editor::execute($id));
+        $this->assertEquals($teacher->id, $saved['runasuserid']);
+        $this->assertSame('Tess Teacher', $saved['runasname']);
+
+        // Without login as, the editor offers no choice.
+        $manager = $this->getDataGenerator()->create_user();
+        $role = $this->getDataGenerator()->create_role();
+        assign_capability('tool/autoflow:manage', CAP_ALLOW, $role, \context_system::instance());
+        $this->getDataGenerator()->role_assign($role, $manager->id, \context_system::instance());
+        $this->setUser($manager);
+        $result = external_api::clean_returnvalue(get_editor::execute_returns(), get_editor::execute(0));
+        $this->assertFalse($result['canchooserunas']);
+    }
+
+    public function test_save_with_a_run_as_user(): void {
+        $teacher = $this->getDataGenerator()->create_user(['firstname' => 'Tess', 'lastname' => 'Teacher']);
+        $result = external_api::clean_returnvalue(
+            save_workflow::execute_returns(),
+            save_workflow::execute(0, 'T', workflow_store_test::graph(), true, (int) $teacher->id)
+        );
+        $this->assertEquals($teacher->id, $result['runasuserid']);
+        $this->assertSame('Tess Teacher', $result['runasname']);
+
+        // Leaving it out means the person saving.
+        $mine = external_api::clean_returnvalue(
+            save_workflow::execute_returns(),
+            save_workflow::execute(0, 'Mine', workflow_store_test::graph(), true)
+        );
+        $this->assertEquals(get_admin()->id, $mine['runasuserid']);
+    }
+
     public function test_run_workflow_queues_a_manual_run(): void {
         $id = workflow_store::save(0, 'Ok', workflow_store_test::graph(), false)['id'];
         $result = external_api::clean_returnvalue(run_workflow::execute_returns(), run_workflow::execute($id));

@@ -29,6 +29,10 @@ export interface EditorData {
   events: string[];
   functions: string[];
   strings: Record<string, string>;
+  /** Who the workflow runs as, and whether the current user may pick someone else. */
+  runasuserid: number;
+  runasname: string;
+  canchooserunas: boolean;
 }
 
 export interface SaveRequest {
@@ -36,6 +40,8 @@ export interface SaveRequest {
   name: string;
   enabled: boolean;
   graph: Graph;
+  /** 0 for the person saving. */
+  runasuserid: number;
 }
 
 export interface SaveProblem {
@@ -48,6 +54,8 @@ export interface SaveResult {
   id: number;
   enabled: boolean;
   errors: SaveProblem[];
+  runasuserid?: number;
+  runasname?: string;
 }
 
 /** What the editor needs from the server. Tests pass a fake. */

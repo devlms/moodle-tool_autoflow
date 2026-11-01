@@ -43,6 +43,7 @@ class save_workflow extends external_api {
             'name' => new external_value(PARAM_TEXT, 'Name'),
             'graph' => new external_value(PARAM_RAW, 'Graph JSON from the editor'),
             'enabled' => new external_value(PARAM_BOOL, 'Whether to enable it'),
+            'runasuserid' => new external_value(PARAM_INT, 'User the workflow runs as, 0 for the person saving', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -55,16 +56,23 @@ class save_workflow extends external_api {
      * @param bool $enabled
      * @return array
      */
-    public static function execute(int $id, string $name, string $graph, bool $enabled): array {
+    public static function execute(int $id, string $name, string $graph, bool $enabled, int $runasuserid = 0): array {
         $params = self::validate_parameters(
             self::execute_parameters(),
-            ['id' => $id, 'name' => $name, 'graph' => $graph, 'enabled' => $enabled]
+            ['id' => $id, 'name' => $name, 'graph' => $graph, 'enabled' => $enabled, 'runasuserid' => $runasuserid]
         );
         $context = \context_system::instance();
         self::validate_context($context);
         require_capability('tool/autoflow:manage', $context);
 
-        $result = workflow_store::save($params['id'], $params['name'], $params['graph'], $params['enabled']);
+        $result = workflow_store::save(
+            $params['id'],
+            $params['name'],
+            $params['graph'],
+            $params['enabled'],
+            $params['runasuserid']
+        );
+        $result['runasname'] = fullname(\core_user::get_user($result['runasuserid']));
         $result['errors'] = array_map(fn($e) => [
             'code' => $e['code'],
             'message' => get_string('error:' . $e['code'], 'tool_autoflow'),
@@ -82,6 +90,8 @@ class save_workflow extends external_api {
         return new external_single_structure([
             'id' => new external_value(PARAM_INT, 'Workflow id'),
             'enabled' => new external_value(PARAM_BOOL, 'Whether it is enabled now'),
+            'runasuserid' => new external_value(PARAM_INT, 'User the workflow runs as'),
+            'runasname' => new external_value(PARAM_TEXT, 'Full name of that user'),
             'errors' => new external_multiple_structure(new external_single_structure([
                 'code' => new external_value(PARAM_ALPHA, 'Problem code'),
                 'message' => new external_value(PARAM_TEXT, 'Problem in words'),

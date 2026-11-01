@@ -138,6 +138,8 @@ export function App({ client, workflowid }: AppProps) {
   const [id, setId] = useState(workflowid);
   const [name, setName] = useState('');
   const [enabled, setEnabled] = useState(false);
+  const [runas, setRunas] = useState('');
+  const [runasname, setRunasname] = useState('');
   const [status, setStatus] = useState('');
   const [problems, setProblems] = useState<SaveProblem[]>([]);
 
@@ -149,6 +151,8 @@ export function App({ client, workflowid }: AppProps) {
         setEdges(flow.edges);
         setName(loaded.name);
         setEnabled(loaded.enabled);
+        setRunas(String(loaded.runasuserid));
+        setRunasname(loaded.runasname);
         setData(loaded);
       },
       (e: Error) => setLoadError(e.message),
@@ -187,7 +191,8 @@ export function App({ client, workflowid }: AppProps) {
   const save = async () => {
     setStatus(strings.saving);
     try {
-      const result = await client.save({ id, name, enabled, graph });
+      const runasuserid = data.canchooserunas ? Number(runas) || 0 : 0;
+      const result = await client.save({ id, name, enabled, graph, runasuserid });
       if (id === 0) {
         // Keep the new workflow on reload.
         window.history.replaceState(null, '', `?id=${result.id}`);
@@ -195,6 +200,10 @@ export function App({ client, workflowid }: AppProps) {
       setId(result.id);
       setEnabled(result.enabled);
       setProblems(result.errors);
+      if (result.runasuserid !== undefined) {
+        setRunas(String(result.runasuserid));
+        setRunasname(result.runasname ?? '');
+      }
       setStatus(strings.saved);
     } catch (e) {
       setStatus(`${strings.savefailed}: ${(e as Error).message}`);
@@ -217,6 +226,14 @@ export function App({ client, workflowid }: AppProps) {
               onChange={(e) => setEnabled(e.target.checked)} />
             <label htmlFor="tool_autoflow-enabled" className="form-check-label">{strings.enabled}</label>
           </div>
+          {data.canchooserunas && (
+            <div className="tool_autoflow-runas-field">
+              <label htmlFor="tool_autoflow-runas" className="visually-hidden sr-only">{strings.runasuserid}</label>
+              <input id="tool_autoflow-runas" type="number" min="1" className="form-control" value={runas}
+                placeholder={strings.runasuserid} onChange={(e) => setRunas(e.target.value)} />
+            </div>
+          )}
+          <span className="tool_autoflow-runas text-muted" data-testid="runas">{strings.runsas} {runasname}</span>
           <button type="button" className="btn btn-primary" onClick={save}>{strings.save}</button>
           <button type="button" className="btn btn-secondary" onClick={run} disabled={id === 0}>{strings.runnow}</button>
           <span className="tool_autoflow-status" role="status">{status}</span>

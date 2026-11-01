@@ -37,9 +37,8 @@ Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with th
 | Save-time checks: one trigger, no loops, nothing unconnected, valid cron and event, required settings filled. A workflow with problems is kept as a disabled draft | Done |
 | Run history with each step's output or error | Done |
 | Loop protection: a workflow that fires its own trigger stops after 3 levels | Done |
-| Runs as the user who saved it last, so a workflow never exceeds that person's permissions | Done |
+| Runs as the user who saved it last, or a user they pick if they hold `moodle/user:loginas` (only a site admin can pick a site admin) | Done |
 | Privacy provider and capabilities | Done |
-| Choose the run-as user explicitly | Planned |
 | More nodes: grades, course actions, cohorts, loops over lists | Planned |
 
 ![Run history: each step with its output](docs/screenshots/run-history.png)
@@ -53,7 +52,7 @@ Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with th
 
 ## Safety
 
-- **Permissions.** A workflow runs as the user who saved it last. Every Moodle node goes through the same capability checks as Moodle's web services, so enrolling someone needs `enrol/manual:enrol`, adding to a group needs `moodle/course:managegroups`, and so on.
+- **Permissions.** A workflow runs as the user who saved it last, unless they pick someone else. Picking another user needs `moodle/user:loginas`, the permission Moodle already uses for acting as someone, and only a site admin can pick a site admin, so a workflow can never be raised above the person who saves it. Every Moodle node goes through the same capability checks as Moodle's web services, so enrolling someone needs `enrol/manual:enrol`, adding to a group needs `moodle/course:managegroups`, and so on.
 - **No code in placeholders.** Placeholder values are filled into each setting separately, never pasted into JSON text, so trigger data such as a user's name cannot add or change arguments.
 - **HTTP requests** go through Moodle's own curl class, so the site's HTTP security settings (blocked hosts and allowed ports, which block local and private addresses by default) apply to the first URL and to every redirect. Only http and https, GET, POST, PUT, PATCH and DELETE. Requests time out after 15 seconds, follow at most 3 redirects, and keep at most 256 KB of the answer. Header names and values are checked so a placeholder cannot add a header of its own. An answer of 400 or more fails the step.
 - **Events never slow a page.** One observer catches every event with a single cached lookup. The workflow runs later in an ad hoc task.

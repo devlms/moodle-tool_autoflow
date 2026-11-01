@@ -73,9 +73,9 @@ describe('moodleClient', () => {
     vi.stubGlobal('M', { cfg: { wwwroot: '', sesskey: 'x' } });
     const fetch = respond([{ error: false, data: { id: 5, enabled: true, errors: [] } }]);
     vi.stubGlobal('fetch', fetch);
-    await moodleClient.save({ id: 0, name: 'N', enabled: true, graph: { nodes: [], edges: [] } });
+    await moodleClient.save({ id: 0, name: 'N', enabled: true, graph: { nodes: [], edges: [] }, runasuserid: 5 });
     expect(JSON.parse(fetch.mock.calls[0][1].body)[0]).toEqual({ index: 0, methodname: 'tool_autoflow_save_workflow',
-      args: { id: 0, name: 'N', enabled: true, graph: '{"nodes":[],"edges":[]}' } });
+      args: { id: 0, name: 'N', enabled: true, graph: '{"nodes":[],"edges":[]}', runasuserid: 5 } });
 
     fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve([{ error: false, data: { queued: true } }]) });
     await expect(moodleClient.run(5)).resolves.toBe(true);

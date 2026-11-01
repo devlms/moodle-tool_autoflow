@@ -1,5 +1,6 @@
 .tool_autoflow-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-bottom: .75rem; }
 .tool_autoflow-toolbar > input { max-width: 24rem; }
+.tool_autoflow-runas-field input { width: 7rem; }
 .tool_autoflow-body { display: grid; grid-template-columns: 12rem 1fr 18rem; gap: .75rem; }
 .tool_autoflow-palette h4, .tool_autoflow-inspector h4, .tool_autoflow-problems h4 { font-size: .9rem; margin: .5rem 0 .25rem; }
 .tool_autoflow-palette button { display: block; width: 100%; margin-bottom: .25rem; text-align: left; }
