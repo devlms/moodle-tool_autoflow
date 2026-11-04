@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'tool_autoflow';
-$plugin->version = 2026110300;
+$plugin->version = 2026110400;
 $plugin->requires = 2024100700;
 $plugin->supported = [405, 503];
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.3.0';
+$plugin->release = '0.4.0';
