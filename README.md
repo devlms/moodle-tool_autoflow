@@ -10,6 +10,8 @@
 [![Moodle](https://img.shields.io/badge/Moodle-4.5%20to%205.3-f98012)](https://moodledev.io/general/releases)
 [![PHP](https://img.shields.io/badge/PHP-8.1%20to%208.4-777bb4)](https://www.php.net/supported-versions.php)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL%20v3-blue)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/devlms/moodle-tool_autoflow?include_prereleases)](https://github.com/devlms/moodle-tool_autoflow/releases)
+[![Maturity](https://img.shields.io/badge/maturity-alpha-orange)](version.php)
 
 Build Moodle automations as workflows in a node editor, instead of writing a new plugin for every one.
 
