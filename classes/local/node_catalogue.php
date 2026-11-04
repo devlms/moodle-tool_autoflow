@@ -27,6 +27,7 @@ use tool_autoflow\local\nodes\call_function_node;
 use tool_autoflow\local\nodes\enrol_user_node;
 use tool_autoflow\local\nodes\http_request_node;
 use tool_autoflow\local\nodes\send_notification_node;
+use tool_autoflow\local\nodes\unenrol_user_node;
 
 /**
  * Every node type this site can use: the engine's own and the Moodle ones.
@@ -54,6 +55,7 @@ final class node_catalogue {
             new enrol_user_node(),
             new add_to_group_node(),
             new add_to_cohort_node(),
+            new unenrol_user_node(),
             new call_function_node(),
         );
     }

@@ -66,6 +66,7 @@ $string['node:moodle.call_function'] = 'Call a Moodle function';
 $string['node:moodle.call_function:help'] = 'Runs any web service function installed on this site, as the user the workflow runs as.';
 $string['node:moodle.enrol_user'] = 'Enrol user in course';
 $string['node:moodle.send_notification'] = 'Send notification';
+$string['node:moodle.unenrol_user'] = 'Remove manual enrolment';
 $string['node:trigger.event'] = 'When an event happens';
 $string['node:trigger.manual'] = 'Started by hand';
 $string['node:trigger.schedule'] = 'On a schedule';

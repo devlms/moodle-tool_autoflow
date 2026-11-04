@@ -31,7 +31,7 @@ Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with th
 | Triggers: started by hand, on a schedule (cron, site timezone), when a Moodle event happens | Done |
 | Logic: condition (Yes and No branches), set variable | Done |
 | Actions: write to the run log, send an HTTP request to another service | Done |
-| Moodle: send notification, enrol user in course, add user to group, add user to cohort | Done |
+| Moodle: send notification, enrol user in course, remove a manual enrolment, add user to group, add user to cohort | Done |
 | Moodle: call any web service function installed on the site (the Moodle API as one node), arguments as JSON | Done |
 | Placeholders in any setting: `{{trigger.relateduserid}}`, `{{nodes.<id>.<key>}}`, `{{vars.<name>}}` | Done |
 | Save-time checks: one trigger, no loops, nothing unconnected, valid cron and event, required settings filled. A workflow with problems is kept as a disabled draft | Done |

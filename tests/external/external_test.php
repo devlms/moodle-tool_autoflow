@@ -50,7 +50,7 @@ final class external_test extends \advanced_testcase {
         $types = array_column(json_decode($result['nodetypes'], true), null, 'type');
         $this->assertSame(
             ['trigger.manual', 'trigger.schedule', 'trigger.event', 'logic.condition', 'logic.set', 'action.log',
-            'action.http', 'moodle.send_notification', 'moodle.enrol_user', 'moodle.add_to_group', 'moodle.add_to_cohort', 'moodle.call_function'],
+            'action.http', 'moodle.send_notification', 'moodle.enrol_user', 'moodle.add_to_group', 'moodle.add_to_cohort', 'moodle.unenrol_user', 'moodle.call_function'],
             array_keys($types)
         );
         foreach ($types as $type => $info) {
