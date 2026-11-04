@@ -43,6 +43,24 @@ Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with th
 
 ![Run history: each step with its output](docs/screenshots/run-history.png)
 
+## Install
+
+Needs Moodle 4.5 to 5.3 with cron running. Scheduled and event workflows run as background tasks.
+
+1. Download the zip from [Releases](https://github.com/devlms/moodle-tool_autoflow/releases) and install it under Site administration, Plugins, Install plugins. Or clone it into Moodle's code directory:
+
+   ```bash
+   # Moodle 4.5 and 5.0
+   git clone https://github.com/devlms/moodle-tool_autoflow.git admin/tool/autoflow
+   # Moodle 5.1 and later (code lives under public/)
+   git clone https://github.com/devlms/moodle-tool_autoflow.git public/admin/tool/autoflow
+   ```
+
+2. Visit Site administration, Notifications to finish the install.
+3. Open Site administration, Plugins, Admin tools, Autoflow. Managers with `tool/autoflow:manage` see it at the top of Site administration.
+
+Nothing needs building: the editor bundle in `frontend/dist` is committed. To change the editor, see `frontend/` and run `npm ci && npm run build`.
+
 ## How a workflow runs
 
 1. A trigger fires: the Run now button, the every-minute schedule task, or a Moodle event caught by one observer that does a single cached lookup and returns.

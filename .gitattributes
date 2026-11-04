@@ -1,0 +1,12 @@
+# Kept out of release zips (git archive). The frontend source and build config stay, so the bundled editor can be rebuilt.
+/.github export-ignore
+/dev export-ignore
+/docs export-ignore
+/infection.json5 export-ignore
+/composer.json export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
+/frontend/e2e export-ignore
+/frontend/test export-ignore
+/frontend/stryker.config.json export-ignore
+/frontend/playwright.config.ts export-ignore
