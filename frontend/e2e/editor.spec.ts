@@ -21,6 +21,8 @@ async function addNode(page: Page, type: string) {
 async function connect(page: Page, from: string, to: string, handle = '') {
   const source = page.locator(`.react-flow__node[data-id="${from}"] .react-flow__handle-bottom${handle ? `[data-handleid="${handle}"]` : ''}`);
   const target = page.locator(`.react-flow__node[data-id="${to}"] .react-flow__handle-top`);
+  // Centre the canvas first: a handle scrolled just into view can sit under Moodle's fixed navbar.
+  await page.locator('.tool_autoflow-canvas').evaluate((el) => el.scrollIntoView({ block: 'center' }));
   await source.dragTo(target);
 }
 
@@ -59,8 +61,10 @@ test('build a workflow in the editor, run it and read the run log', async ({ pag
   await row.getByTestId('run-history').click();
   const run = page.getByTestId('run').first();
   await expect(run).toHaveAttribute('data-status', 'success');
-  await run.locator('summary').click();
-  await expect(run).toContainText('logic_condition_1');
+  // Steps show by name; the node id stays on the step for scripts and tests.
+  const condition = run.locator('[data-node="logic_condition_1"]');
+  await expect(condition).toContainText('Condition');
+  await expect(condition).toContainText('Result: Yes');
   await expect(run).toContainText(/Hello user \d+/);
 
   // Reloading the editor brings the saved graph back.
@@ -106,6 +110,5 @@ test('a workflow can call any Moodle web service function', async ({ page }) => 
   await page.locator('tr', { hasText: name }).getByTestId('run-history').click();
   const run = page.getByTestId('run').first();
   await expect(run).toHaveAttribute('data-status', 'success');
-  await run.locator('summary').click();
   await expect(run).toContainText(/This site is \S+/);
 });
