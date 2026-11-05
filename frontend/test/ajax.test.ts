@@ -81,4 +81,14 @@ describe('moodleClient', () => {
     await expect(moodleClient.run(5)).resolves.toBe(true);
     expect(JSON.parse(fetch.mock.calls[1][1].body)[0]).toEqual({ index: 0, methodname: 'tool_autoflow_run_workflow', args: { id: 5 } });
   });
+
+  it('searches users for the run-as picker', async () => {
+    vi.stubGlobal('M', { cfg: { wwwroot: '', sesskey: 'x' } });
+    const found = { users: [{ id: 4, fullname: 'Ines Moreau', identity: 'ines@example.edu' }], overflow: false };
+    const fetch = respond([{ error: false, data: found }]);
+    vi.stubGlobal('fetch', fetch);
+    await expect(moodleClient.searchUsers('ine')).resolves.toEqual(found);
+    expect(JSON.parse(fetch.mock.calls[0][1].body)[0]).toEqual({ index: 0, methodname: 'tool_autoflow_search_users',
+      args: { query: 'ine' } });
+  });
 });

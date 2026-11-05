@@ -37,13 +37,13 @@ Autoflow turns Moodle's own APIs into nodes. An administrator, or anyone with th
 | Moodle: call any web service function installed on the site (the Moodle API as one node), arguments as JSON | Done |
 | Placeholders in any setting: `{{trigger.relateduserid}}`, `{{nodes.<id>.<key>}}`, `{{vars.<name>}}` | Done |
 | Save-time checks: one trigger, no loops, nothing unconnected, valid cron and event, required settings filled. A workflow with problems is kept as a disabled draft | Done |
-| Run history with each step's output or error | Done |
+| Run history: each step by name with its result or error, failed runs one click away, raw output on demand | Done |
 | Loop protection: a workflow that fires its own trigger stops after 3 levels | Done |
-| Runs as the user who saved it last, or a user they pick if they hold `moodle/user:loginas` (only a site admin can pick a site admin) | Done |
+| Runs as the user who saved it last, or a user they search for by name or email if they hold `moodle/user:loginas` (only a site admin can pick a site admin) | Done |
 | Privacy provider and capabilities | Done |
 | More nodes: grades, course actions, loops over lists | Planned |
 
-![Run history: each step with its output](docs/screenshots/run-history.png)
+![Run history: each step by name with its result, and the step that failed with its reason](docs/screenshots/run-history.png)
 
 ## Install
 

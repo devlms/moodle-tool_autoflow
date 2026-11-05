@@ -91,6 +91,17 @@ final class run_list_test extends \advanced_testcase {
         $this->assertTrue($steps[1]['hasfields']);
     }
 
+    public function test_trigger_step_keeps_its_data_behind_the_raw_toggle_only(): void {
+        $data = $this->export([$this->make_run(1, 'success', [
+            ['node' => 't', 'type' => 'trigger.event', 'status' => 'ok', 'branch' => null,
+                'output' => ['eventname' => '\\core\\event\\course_completed', 'crud' => 'u']],
+        ])]);
+        $step = $data['runs'][0]['steps'][0];
+        $this->assertFalse($step['hasfields']);
+        $this->assertTrue($step['hasraw']);
+        $this->assertStringContainsString('"crud"', $step['raw']);
+    }
+
     public function test_failed_step_carries_its_error(): void {
         $data = $this->export([$this->make_run(1, 'failed', [
             ['node' => 't', 'type' => 'trigger.manual', 'status' => 'ok', 'branch' => null, 'output' => []],
@@ -106,6 +117,7 @@ final class run_list_test extends \advanced_testcase {
         $this->assertSame('Failed', $step['statuslabel']);
         $this->assertSame('The URL is blocked.', $step['error']);
         $this->assertFalse($step['hasfields']);
+        $this->assertFalse($step['hasraw']);
         $this->assertFalse($run['showerror'], 'The failed step already says what went wrong.');
     }
 
@@ -152,7 +164,8 @@ final class run_list_test extends \advanced_testcase {
 
     public function test_run_shows_the_user_it_was_about_and_when(): void {
         $user = $this->getDataGenerator()->create_user(['firstname' => 'Ines', 'lastname' => 'Bel']);
-        $data = $this->export([$this->make_run(1, 'success', [], ['userid' => $user->id, 'timecreated' => self::NOW - 3 * HOURSECS])]);
+        $run = $this->make_run(1, 'success', [], ['userid' => $user->id, 'timecreated' => self::NOW - 3 * HOURSECS]);
+        $data = $this->export([$run]);
         $run = $data['runs'][0];
         $this->assertTrue($run['hasuser']);
         $this->assertSame('Ines Bel', $run['user']);

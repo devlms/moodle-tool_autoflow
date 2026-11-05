@@ -1,4 +1,4 @@
-import type { Client, EditorData, SaveRequest, SaveResult } from './types';
+import type { Client, EditorData, SaveRequest, SaveResult, UserSearchResult } from './types';
 
 declare global {
   // Moodle puts its config on window.M.
@@ -61,5 +61,8 @@ export const moodleClient: Client = {
   },
   async run(workflowid) {
     return (await callService<{ queued: boolean }>('tool_autoflow_run_workflow', { id: workflowid })).queued;
+  },
+  searchUsers(query) {
+    return callService<UserSearchResult>('tool_autoflow_search_users', { query });
   },
 };

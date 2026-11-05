@@ -46,4 +46,11 @@ $functions = [
         'ajax' => true,
         'capabilities' => 'tool/autoflow:manage',
     ],
+    'tool_autoflow_search_users' => [
+        'classname' => '\tool_autoflow\external\search_users',
+        'description' => 'Find users a workflow could run as.',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'tool/autoflow:manage, moodle/user:loginas',
+    ],
 ];

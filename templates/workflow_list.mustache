@@ -17,27 +17,30 @@
 {{!
     @template tool_autoflow/workflow_list
 
-    List of workflows on the plugin's main page.
+    List of workflows on the plugin's main page, with how each one's last run went.
 
     Context variables required for this template:
     * newurl - URL of the editor for a new workflow
     * hasworkflows - bool
-    * workflows - list of {id, name, enabled, trigger, runas, lastrun, editurl, runsurl, runurl, deleteurl}
+    * workflows - list of {id, name, enabled, statuslabel, statusbadge, trigger, runas, hasrun, lastrun, lastrunfull,
+      laststatus, lastbadge, editurl, runsurl, runurl, deleteurl}
 
     Example context (json):
     {
         "newurl": "#",
         "hasworkflows": true,
         "workflows": [
-            {"id": 1, "name": "Welcome new students", "enabled": true, "trigger": "When an event happens", "runas": "Admin User",
-             "lastrun": "31 October 2026", "editurl": "#", "runsurl": "#", "runurl": "#", "deleteurl": "#"}
+            {"id": 1, "name": "Welcome new students", "enabled": true, "statuslabel": "Enabled",
+             "statusbadge": "badge bg-success text-white", "trigger": "When an event happens", "runas": "Admin User",
+             "hasrun": true, "lastrun": "3 hours ago", "lastrunfull": "5 November 2026, 9:00 AM", "laststatus": "Failed",
+             "lastbadge": "badge bg-danger text-white", "editurl": "#", "runsurl": "#", "runurl": "#", "deleteurl": "#"}
         ]
     }
 }}
 <div class="tool_autoflow-list" data-region="workflow-list">
     <p><a class="btn btn-primary" href="{{newurl}}" data-testid="new-workflow">{{#str}}newworkflow, tool_autoflow{{/str}}</a></p>
     {{#hasworkflows}}
-    <table class="table generaltable">
+    <table class="table generaltable tool_autoflow-table">
         <thead>
             <tr>
                 <th scope="col">{{#str}}name{{/str}}</th>
@@ -51,13 +54,18 @@
         <tbody>
             {{#workflows}}
             <tr data-workflowid="{{id}}">
-                <td><a href="{{editurl}}">{{name}}</a></td>
+                <td><a href="{{editurl}}" class="tool_autoflow-name-link">{{name}}</a></td>
                 <td>{{trigger}}</td>
                 <td>{{runas}}</td>
-                <td>{{#enabled}}{{#str}}enabled, admin{{/str}}{{/enabled}}{{^enabled}}{{#str}}disabled, admin{{/str}}{{/enabled}}</td>
-                <td>{{lastrun}}</td>
+                <td><span class="{{statusbadge}}">{{statuslabel}}</span></td>
                 <td>
-                    <a href="{{runurl}}" class="btn btn-sm btn-secondary" data-testid="run-now">{{#str}}runnow, tool_autoflow{{/str}}</a>
+                    {{#hasrun}}
+                    <a href="{{runsurl}}" class="tool_autoflow-lastrun"><span class="{{lastbadge}}">{{laststatus}}</span> <time title="{{lastrunfull}}">{{lastrun}}</time></a>
+                    {{/hasrun}}
+                    {{^hasrun}}<span class="text-muted">{{lastrun}}</span>{{/hasrun}}
+                </td>
+                <td class="tool_autoflow-actions">
+                    <a href="{{runurl}}" class="btn btn-sm btn-outline-secondary" data-testid="run-now">{{#str}}runnow, tool_autoflow{{/str}}</a>
                     <a href="{{runsurl}}" class="btn btn-sm btn-link" data-testid="run-history">{{#str}}runs, tool_autoflow{{/str}}</a>
                     <a href="{{deleteurl}}" class="btn btn-sm btn-link text-danger">{{#str}}delete{{/str}}</a>
                 </td>

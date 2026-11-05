@@ -31,6 +31,7 @@ use tool_autoflow\task\run_workflow as run_task;
  * @covers     \tool_autoflow\external\get_editor
  * @covers     \tool_autoflow\external\save_workflow
  * @covers     \tool_autoflow\external\run_workflow
+ * @covers     \tool_autoflow\external\search_users
  * @covers     \tool_autoflow\local\node_catalogue
  */
 final class external_test extends \advanced_testcase {
@@ -167,7 +168,7 @@ final class external_test extends \advanced_testcase {
         $id = workflow_store::save(0, 'Ok', workflow_store_test::graph(), false)['id'] ?? 0;
         foreach (
             [fn() => get_editor::execute(0), fn() => save_workflow::execute(0, 'x', '{}', false),
-                fn() => run_workflow::execute($id)] as $call
+                fn() => run_workflow::execute($id), fn() => search_users::execute('ad')] as $call
         ) {
             try {
                 $call();
@@ -185,5 +186,75 @@ final class external_test extends \advanced_testcase {
         ) {
             $this->assertTrue(get_string_manager()->string_exists("error:$code", 'tool_autoflow'), $code);
         }
+    }
+
+    /**
+     * Search for users as the current user and return the cleaned reply.
+     *
+     * @param string $query
+     * @return array
+     */
+    private function search(string $query): array {
+        return external_api::clean_returnvalue(search_users::execute_returns(), search_users::execute($query));
+    }
+
+    /**
+     * A manager who may pick another run-as user, without being a site admin.
+     *
+     * @return \stdClass
+     */
+    private function manager(): \stdClass {
+        $manager = $this->getDataGenerator()->create_user(['firstname' => 'Mona', 'lastname' => 'Manager']);
+        $this->getDataGenerator()->role_assign('manager', $manager->id, \context_system::instance()->id);
+        return $manager;
+    }
+
+    public function test_search_users_hides_site_admins_from_others(): void {
+        $this->setUser($this->manager());
+        $this->assertNotContains((int) get_admin()->id, array_column($this->search('Admin')['users'], 'id'));
+    }
+
+    public function test_search_users_shows_site_admins_to_site_admins(): void {
+        $this->assertContains((int) get_admin()->id, array_column($this->search('Admin')['users'], 'id'));
+    }
+
+    public function test_search_users_matches_name_and_email(): void {
+        $gen = $this->getDataGenerator();
+        $ines = $gen->create_user(['firstname' => 'Ines', 'lastname' => 'Moreau', 'email' => 'ines@example.edu']);
+        $gen->create_user(['firstname' => 'Omar', 'lastname' => 'Haddad', 'email' => 'omar@example.edu']);
+
+        $byname = $this->search('Morea')['users'];
+        $this->assertSame([(int) $ines->id], array_column($byname, 'id'));
+        $this->assertSame('Ines Moreau', $byname[0]['fullname']);
+        $this->assertStringContainsString('ines@example.edu', $byname[0]['identity']);
+        $this->assertSame([(int) $ines->id], array_column($this->search('ines@')['users'], 'id'));
+    }
+
+    public function test_search_users_skips_suspended_and_deleted_users(): void {
+        $gen = $this->getDataGenerator();
+        $gen->create_user(['firstname' => 'Zed', 'lastname' => 'Suspended', 'suspended' => 1]);
+        $gone = $gen->create_user(['firstname' => 'Zed', 'lastname' => 'Deleted']);
+        delete_user($gone);
+        $this->assertSame([], $this->search('Zed')['users']);
+    }
+
+    public function test_search_users_says_when_there_are_more(): void {
+        for ($i = 0; $i < search_users::LIMIT + 1; $i++) {
+            $this->getDataGenerator()->create_user(['firstname' => 'Many', 'lastname' => "User $i"]);
+        }
+        $result = $this->search('Many');
+        $this->assertCount(search_users::LIMIT, $result['users']);
+        $this->assertTrue($result['overflow']);
+        $this->assertFalse($this->search('User 1')['overflow']);
+    }
+
+    public function test_search_users_needs_login_as(): void {
+        $role = $this->getDataGenerator()->create_role();
+        assign_capability('tool/autoflow:manage', CAP_ALLOW, $role, \context_system::instance()->id);
+        $user = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->role_assign($role, $user->id, \context_system::instance()->id);
+        $this->setUser($user);
+        $this->expectException(\required_capability_exception::class);
+        $this->search('Admin');
     }
 }

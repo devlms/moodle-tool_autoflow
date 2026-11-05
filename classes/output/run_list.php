@@ -19,6 +19,7 @@ namespace tool_autoflow\output;
 use core\output\renderable;
 use core\output\renderer_base;
 use core\output\templatable;
+use tool_autoflow\local\display;
 
 /**
  * Run history of one workflow: each run with readable steps, newest first.
@@ -30,13 +31,6 @@ use core\output\templatable;
 class run_list implements renderable, templatable {
     /** @var string[] Filters, in the order they are shown. */
     public const FILTERS = ['all', 'failed', 'success'];
-
-    /** @var string[] Badge classes per run status. Text colours pass WCAG AA on 4.5 and 5.x. */
-    private const BADGES = [
-        'success' => 'bg-success text-white',
-        'failed' => 'bg-danger text-white',
-        'running' => 'bg-info text-dark',
-    ];
 
     /** @var int Longest value shown inline before it is cut. */
     private const MAXVALUE = 120;
@@ -98,14 +92,14 @@ class run_list implements renderable, templatable {
             $rows[] = [
                 'id' => (int) $run->id,
                 'status' => $run->status,
-                'statuslabel' => $this->string_or('status:' . $run->status, $run->status),
-                'badge' => 'badge ' . (self::BADGES[$run->status] ?? 'bg-secondary text-dark'),
+                'statuslabel' => display::run_status($run->status),
+                'badge' => display::run_badge($run->status),
                 'failed' => $run->status === 'failed',
                 'trigger' => $this->trigger_label($run->triggertype, $log),
                 'hasuser' => $user !== null,
                 'user' => $user ? fullname($user) : '',
                 'picture' => $user ? $output->user_picture($user, ['size' => 24, 'link' => false, 'alttext' => false]) : '',
-                'ago' => $this->ago((int) $run->timecreated),
+                'ago' => display::ago((int) $run->timecreated, $this->now),
                 'time' => userdate((int) $run->timecreated),
                 'error' => $error,
                 'showerror' => $error !== '' && !in_array(true, array_column($steps, 'failed'), true),
@@ -134,22 +128,25 @@ class run_list implements renderable, templatable {
         $failed = ($step['status'] ?? '') !== 'ok';
         $output = is_array($step['output'] ?? null) ? $step['output'] : [];
         $fields = [];
-        foreach ($output as $name => $value) {
+        // A trigger's data is the event as Moodle records it; it is noise in the summary, so it stays in the raw view.
+        $istrigger = str_starts_with((string) ($step['type'] ?? ''), 'trigger.');
+        foreach ($istrigger ? [] : $output as $name => $value) {
             $fields[] = ['name' => (string) $name, 'value' => $this->shorten($value)];
         }
         $branch = $step['branch'] ?? null;
+        $branchlabel = $branch === null ? '' : display::string_or('branch:' . $branch, (string) $branch);
         return [
             'node' => (string) ($step['node'] ?? ''),
             'type' => (string) ($step['type'] ?? ''),
-            'label' => $this->string_or('node:' . ($step['type'] ?? ''), (string) ($step['type'] ?? '')),
+            'label' => display::string_or('node:' . ($step['type'] ?? ''), (string) ($step['type'] ?? '')),
             'failed' => $failed,
             'statuslabel' => get_string($failed ? 'step:error' : 'step:ok', 'tool_autoflow'),
             'error' => $failed ? (string) ($step['error'] ?? '') : '',
-            'branch' => $branch === null ? '' : get_string('step:branch', 'tool_autoflow',
-                $this->string_or('branch:' . $branch, (string) $branch)),
+            'branch' => $branch === null ? '' : get_string('step:branch', 'tool_autoflow', $branchlabel),
             'fields' => $fields,
             'hasfields' => !empty($fields),
-            'raw' => $fields ? json_encode($output, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '',
+            'hasraw' => !empty($output),
+            'raw' => $output ? json_encode($output, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '',
         ];
     }
 
@@ -162,7 +159,7 @@ class run_list implements renderable, templatable {
      */
     private function trigger_label(string $type, array $steps): string {
         if ($type !== 'event') {
-            return $this->string_or('trigger:' . $type, $type);
+            return display::string_or('trigger:' . $type, $type);
         }
         $class = $steps[0]['output']['eventname'] ?? '';
         $name = is_string($class) && class_exists($class) && is_subclass_of($class, \core\event\base::class)
@@ -185,42 +182,5 @@ class run_list implements renderable, templatable {
             $text = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
         return \core_text::strlen($text) > self::MAXVALUE ? \core_text::substr($text, 0, self::MAXVALUE) . '…' : $text;
-    }
-
-    /**
-     * A short relative time: "Just now", "3 hours ago", "Yesterday", "5 days ago", then the date.
-     *
-     * @param int $time
-     * @return string
-     */
-    private function ago(int $time): string {
-        $diff = max(0, $this->now - $time);
-        if ($diff < MINSECS) {
-            return get_string('ago:now', 'tool_autoflow');
-        }
-        if ($diff < HOURSECS) {
-            return get_string('ago:minutes', 'tool_autoflow', intdiv($diff, MINSECS));
-        }
-        if ($diff < DAYSECS) {
-            return get_string('ago:hours', 'tool_autoflow', intdiv($diff, HOURSECS));
-        }
-        if ($diff < 2 * DAYSECS) {
-            return get_string('ago:yesterday', 'tool_autoflow');
-        }
-        if ($diff < 14 * DAYSECS) {
-            return get_string('ago:days', 'tool_autoflow', intdiv($diff, DAYSECS));
-        }
-        return userdate($time, get_string('strftimedate', 'langconfig'));
-    }
-
-    /**
-     * A plugin string if it exists, otherwise the fallback.
-     *
-     * @param string $key
-     * @param string $fallback
-     * @return string
-     */
-    private function string_or(string $key, string $fallback): string {
-        return get_string_manager()->string_exists($key, 'tool_autoflow') ? get_string($key, 'tool_autoflow') : $fallback;
     }
 }

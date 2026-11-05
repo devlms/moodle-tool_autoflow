@@ -46,9 +46,8 @@ test('build a workflow in the editor, run it and read the run log', async ({ pag
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(editor(page).getByRole('status')).toHaveText('Saved');
   await expect(page).toHaveURL(/edit\.php\?id=\d+/);
-  // The admin can log in as others, so the editor offers the run-as field, filled with the admin.
-  await expect(editor(page).getByTestId('runas')).toHaveText('Runs as Admin User');
-  await expect(editor(page).getByLabel('Runs as (user id)', { exact: true })).toHaveValue('2');
+  // The admin can log in as others, so the editor offers the run-as picker, showing the admin.
+  await expect(editor(page).getByRole('combobox', { name: 'Runs as' })).toHaveValue('Admin User');
 
   await page.getByRole('button', { name: 'Run now' }).click();
   await expect(editor(page).getByRole('status')).toContainText('Run queued');

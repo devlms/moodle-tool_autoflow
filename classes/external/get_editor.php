@@ -36,7 +36,8 @@ class get_editor extends external_api {
     private const STRINGS = ['save', 'saved', 'runnow', 'runqueued', 'enabled', 'workflowname', 'palette', 'nodesettings',
         'selectnode', 'deletenode', 'problems', 'saving', 'savefailed', 'branch:true', 'branch:false', 'choose', 'workflowruns',
         'cat:trigger', 'cat:logic', 'cat:action', 'cat:moodle', 'error:notrigger', 'error:manytriggers', 'error:duplicateid',
-        'error:danglingedge', 'error:cycle', 'error:unreachable', 'invalidjson', 'runsas', 'runasuserid'];
+        'error:danglingedge', 'error:cycle', 'error:unreachable', 'invalidjson', 'runsas', 'searchusers', 'nousersfound',
+        'moreusers', 'emptycanvas'];
 
     /**
      * Parameters.

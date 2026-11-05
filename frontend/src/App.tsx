@@ -14,7 +14,8 @@ import {
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { connectionToEdge, fromFlow, newNode, nodeSummary, toFlow, type FlowNode } from './flow';
 import { isTrigger, validateGraph } from './graph';
-import type { Client, EditorData, NodeTypeInfo, ParamInfo, SaveProblem } from './types';
+import { RunAsPicker } from './RunAsPicker';
+import type { Client, EditorData, NodeTypeInfo, ParamInfo, RunAs, SaveProblem } from './types';
 
 interface Labels {
   types: Map<string, NodeTypeInfo>;
@@ -29,7 +30,8 @@ function NodeView({ id, data, selected }: NodeProps<FlowNode>) {
   const { types, strings, marked } = useContext(LabelsContext);
   const info = types.get(data.nodetype);
   const branches = info?.branches ?? [];
-  const classes = ['tool_autoflow-node', selected ? 'is-selected' : '', marked.has(id) ? 'has-problem' : ''];
+  const classes = ['tool_autoflow-node', `is-${info?.category ?? 'unknown'}`, selected ? 'is-selected' : '',
+    marked.has(id) ? 'has-problem' : ''];
   const summary = nodeSummary(info, data.params) || data.nodetype;
   return (
     <div data-testid={`node-${id}`} className={classes.filter(Boolean).join(' ')}>
@@ -73,7 +75,7 @@ function JsonField({ id, value, onChange, invalid, required }: {
   const valid = text.trim() === '' || isObject(parsed);
   return (
     <>
-      <textarea id={id} className="form-control font-monospace" rows={6} value={text} required={required}
+      <textarea id={id} className="form-control font-monospace tool_autoflow-code" rows={6} value={text} required={required}
         onChange={(e) => {
           setText(e.target.value);
           let next: unknown = e.target.value;
@@ -102,7 +104,7 @@ function ParamField({ param, value, onChange, strings }: {
     input = <textarea id={id} className="form-control" rows={4} value={text} required={param.required} onChange={(e) => onChange(e.target.value)} />;
   } else if (param.kind === 'select') {
     input = (
-      <select id={id} className="form-select" value={text} required={param.required} onChange={(e) => onChange(e.target.value)}>
+      <select id={id} className="form-select custom-select" value={text} required={param.required} onChange={(e) => onChange(e.target.value)}>
         <option value="">{strings.choose}</option>
         {param.options.map((o) => (
           <option key={o} value={o}>{param.optionlabels[o] ?? o}</option>
@@ -138,8 +140,7 @@ export function App({ client, workflowid }: AppProps) {
   const [id, setId] = useState(workflowid);
   const [name, setName] = useState('');
   const [enabled, setEnabled] = useState(false);
-  const [runas, setRunas] = useState('');
-  const [runasname, setRunasname] = useState('');
+  const [runas, setRunas] = useState<RunAs>({ id: 0, name: '' });
   const [status, setStatus] = useState('');
   const [problems, setProblems] = useState<SaveProblem[]>([]);
 
@@ -151,8 +152,7 @@ export function App({ client, workflowid }: AppProps) {
         setEdges(flow.edges);
         setName(loaded.name);
         setEnabled(loaded.enabled);
-        setRunas(String(loaded.runasuserid));
-        setRunasname(loaded.runasname);
+        setRunas({ id: loaded.runasuserid, name: loaded.runasname });
         setData(loaded);
       },
       (e: Error) => setLoadError(e.message),
@@ -191,7 +191,7 @@ export function App({ client, workflowid }: AppProps) {
   const save = async () => {
     setStatus(strings.saving);
     try {
-      const runasuserid = data.canchooserunas ? Number(runas) || 0 : 0;
+      const runasuserid = data.canchooserunas ? runas.id : 0;
       const result = await client.save({ id, name, enabled, graph, runasuserid });
       if (id === 0) {
         // Keep the new workflow on reload.
@@ -201,8 +201,7 @@ export function App({ client, workflowid }: AppProps) {
       setEnabled(result.enabled);
       setProblems(result.errors);
       if (result.runasuserid !== undefined) {
-        setRunas(String(result.runasuserid));
-        setRunasname(result.runasname ?? '');
+        setRunas({ id: result.runasuserid, name: result.runasname ?? '' });
       }
       setStatus(strings.saved);
     } catch (e) {
@@ -218,25 +217,25 @@ export function App({ client, workflowid }: AppProps) {
     <LabelsContext.Provider value={{ types, strings, marked }}>
       <div className="tool_autoflow-editor">
         <div className="tool_autoflow-toolbar">
-          <label htmlFor="tool_autoflow-name" className="visually-hidden sr-only">{strings.workflowname}</label>
-          <input id="tool_autoflow-name" className="form-control" placeholder={strings.workflowname} value={name}
-            onChange={(e) => setName(e.target.value)} />
-          <div className="form-check">
-            <input id="tool_autoflow-enabled" type="checkbox" className="form-check-input" checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)} />
-            <label htmlFor="tool_autoflow-enabled" className="form-check-label">{strings.enabled}</label>
-          </div>
-          {data.canchooserunas && (
-            <div className="tool_autoflow-runas-field">
-              <label htmlFor="tool_autoflow-runas" className="visually-hidden sr-only">{strings.runasuserid}</label>
-              <input id="tool_autoflow-runas" type="number" min="1" className="form-control" value={runas}
-                placeholder={strings.runasuserid} onChange={(e) => setRunas(e.target.value)} />
+          <div className="tool_autoflow-toolbar-main">
+            <label htmlFor="tool_autoflow-name" className="tool_autoflow-sr">{strings.workflowname}</label>
+            <input id="tool_autoflow-name" className="form-control tool_autoflow-name" placeholder={strings.workflowname} value={name}
+              onChange={(e) => setName(e.target.value)} />
+            <div className="tool_autoflow-enabled">
+              <input id="tool_autoflow-enabled" type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+              <label htmlFor="tool_autoflow-enabled">{strings.enabled}</label>
             </div>
-          )}
-          <span className="tool_autoflow-runas text-muted" data-testid="runas">{strings.runsas} {runasname}</span>
-          <button type="button" className="btn btn-primary" onClick={save}>{strings.save}</button>
-          <button type="button" className="btn btn-secondary" onClick={run} disabled={id === 0}>{strings.runnow}</button>
-          <span className="tool_autoflow-status" role="status">{status}</span>
+            {data.canchooserunas ? (
+              <RunAsPicker search={client.searchUsers} value={runas} onChange={setRunas} strings={strings} />
+            ) : (
+              <span className="tool_autoflow-runas" data-testid="runas">{strings.runsas} <strong>{runas.name}</strong></span>
+            )}
+          </div>
+          <div className="tool_autoflow-toolbar-actions">
+            <span className="tool_autoflow-status" role="status">{status}</span>
+            <button type="button" className="btn btn-outline-secondary" onClick={run} disabled={id === 0}>{strings.runnow}</button>
+            <button type="button" className="btn btn-primary" onClick={save}>{strings.save}</button>
+          </div>
         </div>
         <div className="tool_autoflow-body">
           <section className="tool_autoflow-palette" aria-label={strings.palette}>
@@ -244,7 +243,7 @@ export function App({ client, workflowid }: AppProps) {
               <div key={category}>
                 <h4>{strings[`cat:${category}`] ?? category}</h4>
                 {data.nodetypes.filter((t) => t.category === category).map((t) => (
-                  <button key={t.type} type="button" className="btn btn-outline-secondary btn-sm" title={t.description}
+                  <button key={t.type} type="button" className={`tool_autoflow-palette-item is-${category}`} title={t.description}
                     data-testid={`palette-${t.type}`} onClick={() => add(t.type)}>{t.label}</button>
                 ))}
               </div>
@@ -255,28 +254,30 @@ export function App({ client, workflowid }: AppProps) {
               onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
               onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView
               defaultEdgeOptions={{ markerEnd: { type: MarkerType.ArrowClosed } }}
-              fitViewOptions={{ maxZoom: 1 }}>
+              fitViewOptions={{ maxZoom: 1, padding: 0.15 }}>
               <Background />
-              <Controls />
+              <Controls position="top-right" />
             </ReactFlow>
+            {nodes.length === 0 && <p className="tool_autoflow-canvas-empty">{strings.emptycanvas}</p>}
           </div>
           <aside className="tool_autoflow-inspector" aria-label={strings.nodesettings}>
             {current && currentType ? (
               <>
                 <h4>{currentType.label}</h4>
+                {currentType.description && <p className="tool_autoflow-inspector-help">{currentType.description}</p>}
                 {currentType.params.map((p) => (
                   <ParamField key={`${current.id}:${p.name}`} param={p} value={current.data.params[p.name]} strings={strings}
                     onChange={(v) => setParam(current.id, p.name, v)} />
                 ))}
-                <button type="button" className="btn btn-link text-danger" onClick={() => remove(current.id)}>{strings.deletenode}</button>
+                <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => remove(current.id)}>{strings.deletenode}</button>
               </>
             ) : (
-              <p>{strings.selectnode}</p>
+              <p className="tool_autoflow-inspector-empty">{strings.selectnode}</p>
             )}
           </aside>
         </div>
         {(clientProblems.length > 0 || problems.length > 0) && (
-          <section className="tool_autoflow-problems" aria-label={strings.problems}>
+          <section className="tool_autoflow-problems alert alert-danger" aria-label={strings.problems}>
             <h4>{strings.problems}</h4>
             <ul>
               {/* Stryker disable next-line StringLiteral: list keys never change what renders. */}

@@ -1,18 +1,340 @@
-.tool_autoflow-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-bottom: .75rem; }
-.tool_autoflow-toolbar > input { max-width: 24rem; }
-.tool_autoflow-runas-field input { width: 7rem; }
-.tool_autoflow-body { display: grid; grid-template-columns: 12rem 1fr 18rem; gap: .75rem; }
-.tool_autoflow-palette h4, .tool_autoflow-inspector h4, .tool_autoflow-problems h4 { font-size: .9rem; margin: .5rem 0 .25rem; }
-.tool_autoflow-palette button { display: block; width: 100%; margin-bottom: .25rem; text-align: left; }
-.tool_autoflow-canvas { height: 560px; border: 1px solid #dee2e6; border-radius: .375rem; }
-.tool_autoflow-node { background: #fff; border: 1px solid #8f959e; border-radius: .375rem; padding: .5rem .75rem; min-width: 10rem; }
-.tool_autoflow-node.is-selected { border-color: #0f6cbf; box-shadow: 0 0 0 2px rgba(15, 108, 191, .3); }
-.tool_autoflow-node.has-problem { border-color: #ca3120; }
-.tool_autoflow-node-label { font-weight: 600; }
-.tool_autoflow-node-type { font-size: .75rem; color: #6a737b; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tool_autoflow-branches { display: flex; justify-content: space-between; gap: 1rem; margin-top: .25rem; font-size: .75rem; }
-.tool_autoflow-branch { position: relative; padding-bottom: .5rem; }
-.tool_autoflow-inspector select { display: block; width: 100%; }
-.tool_autoflow-inspector .is-required::after { content: " *"; color: #ca3120; }
-.tool_autoflow-problems { margin-top: .75rem; color: #ca3120; }
-@media (max-width: 991px) { .tool_autoflow-body { grid-template-columns: 1fr; } }
+/*
+ * Workflow editor. Everything is scoped to .tool_autoflow-editor. Moodle 4.5 ships Bootstrap 4 and 5.x ships
+ * Bootstrap 5, so the few utilities that only exist in one of them (screen reader text, monospace) are defined here.
+ */
+.tool_autoflow-editor {
+    --af-trigger: #0f6cbf;
+    --af-logic: #a35200;
+    --af-action: #6f42c1;
+    --af-moodle: #357a32;
+    --af-border: #dee2e6;
+    --af-muted: #5b6269;
+}
+
+.tool_autoflow-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.tool_autoflow-code {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: .85rem;
+}
+
+/* Toolbar: name, enabled, run-as on the left; status and buttons on the right. */
+.tool_autoflow-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem 1.25rem;
+    margin-bottom: 1rem;
+    padding: .75rem 1rem;
+    border: 1px solid var(--af-border);
+    border-radius: .5rem;
+    background: #f8f9fa;
+}
+
+.tool_autoflow-toolbar-main,
+.tool_autoflow-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem 1.25rem;
+}
+
+.tool_autoflow-toolbar .tool_autoflow-name {
+    width: 22rem;
+    max-width: 100%;
+    font-weight: 600;
+}
+
+/* A plain checkbox at a 24px touch target, the same on Bootstrap 4 and 5. */
+.tool_autoflow-enabled {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.tool_autoflow-enabled input {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0;
+    accent-color: #0f6cbf;
+    cursor: pointer;
+}
+
+.tool_autoflow-enabled label {
+    margin: 0;
+    cursor: pointer;
+}
+
+.tool_autoflow-runas {
+    color: var(--af-muted);
+}
+
+.tool_autoflow-runas strong {
+    color: #1d2125;
+}
+
+.tool_autoflow-status {
+    color: var(--af-muted);
+    font-size: .9rem;
+}
+
+/* Run-as picker. */
+.tool_autoflow-runas-picker {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.tool_autoflow-runas-label {
+    margin: 0;
+    color: var(--af-muted);
+    white-space: nowrap;
+}
+
+.tool_autoflow-combobox {
+    position: relative;
+}
+
+.tool_autoflow-combobox input {
+    width: 15rem;
+}
+
+.tool_autoflow-options {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + .25rem);
+    left: 0;
+    min-width: 100%;
+    width: 20rem;
+    max-height: 18rem;
+    overflow: auto;
+    margin: 0;
+    padding: .25rem 0;
+    list-style: none;
+    border: 1px solid var(--af-border);
+    border-radius: .375rem;
+    background: #fff;
+    box-shadow: 0 .5rem 1rem rgba(29, 33, 37, .12);
+}
+
+.tool_autoflow-options[hidden] {
+    display: none;
+}
+
+.tool_autoflow-options [role="option"] {
+    display: flex;
+    flex-direction: column;
+    padding: .4rem .75rem;
+    cursor: pointer;
+}
+
+.tool_autoflow-options [role="option"].is-active,
+.tool_autoflow-options [role="option"]:hover {
+    background: #e7f1fa;
+}
+
+.tool_autoflow-option-identity {
+    color: var(--af-muted);
+    font-size: .8rem;
+}
+
+.tool_autoflow-options-note {
+    padding: .4rem .75rem;
+    color: var(--af-muted);
+    font-size: .85rem;
+}
+
+/* Palette, canvas and inspector. */
+.tool_autoflow-body {
+    display: grid;
+    grid-template-columns: 13rem 1fr 19rem;
+    gap: 1rem;
+}
+
+.tool_autoflow-palette h4,
+.tool_autoflow-inspector h4,
+.tool_autoflow-problems h4 {
+    margin: .75rem 0 .4rem;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--af-muted);
+}
+
+.tool_autoflow-palette > div:first-child h4 {
+    margin-top: 0;
+}
+
+.tool_autoflow-palette-item {
+    display: block;
+    width: 100%;
+    margin-bottom: .3rem;
+    padding: .35rem .6rem;
+    border: 1px solid var(--af-border);
+    border-left: 4px solid var(--af-accent, var(--af-border));
+    border-radius: .375rem;
+    background: #fff;
+    color: #1d2125;
+    font-size: .9rem;
+    text-align: left;
+}
+
+.tool_autoflow-palette-item:hover {
+    background: #f1f3f5;
+}
+
+.tool_autoflow-palette-item:focus-visible {
+    outline: 2px solid var(--af-trigger);
+    outline-offset: 1px;
+}
+
+.tool_autoflow-canvas {
+    position: relative;
+    height: 600px;
+    border: 1px solid var(--af-border);
+    border-radius: .5rem;
+    background: #fbfbfc;
+    overflow: hidden;
+}
+
+.tool_autoflow-canvas-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    max-width: 22rem;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    color: var(--af-muted);
+    text-align: center;
+    pointer-events: none;
+}
+
+.tool_autoflow-node {
+    min-width: 11rem;
+    padding: .5rem .75rem;
+    border: 1px solid #c4c9ce;
+    border-top: 4px solid var(--af-accent, #8f959e);
+    border-radius: .5rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(29, 33, 37, .08);
+}
+
+.tool_autoflow-node.is-selected {
+    border-color: var(--af-trigger);
+    border-top-color: var(--af-accent, var(--af-trigger));
+    box-shadow: 0 0 0 3px rgba(15, 108, 191, .25);
+}
+
+.tool_autoflow-node.has-problem {
+    border-color: #ca3120;
+    box-shadow: 0 0 0 3px rgba(202, 49, 32, .2);
+}
+
+.tool_autoflow-editor .is-trigger { --af-accent: var(--af-trigger); }
+.tool_autoflow-editor .is-logic { --af-accent: var(--af-logic); }
+.tool_autoflow-editor .is-action { --af-accent: var(--af-action); }
+.tool_autoflow-editor .is-moodle { --af-accent: var(--af-moodle); }
+
+.tool_autoflow-node-label {
+    font-weight: 600;
+}
+
+.tool_autoflow-node-type {
+    max-width: 16rem;
+    overflow: hidden;
+    color: var(--af-muted);
+    font-size: .75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tool_autoflow-branches {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: .3rem;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+.tool_autoflow-branch {
+    position: relative;
+    padding-bottom: .5rem;
+}
+
+.tool_autoflow-inspector {
+    align-self: start;
+    padding: .25rem 1rem 1rem;
+    border: 1px solid var(--af-border);
+    border-radius: .5rem;
+    background: #fff;
+}
+
+.tool_autoflow-inspector h4:first-child {
+    font-size: 1rem;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #1d2125;
+}
+
+.tool_autoflow-inspector-help,
+.tool_autoflow-inspector-empty {
+    color: var(--af-muted);
+    font-size: .85rem;
+}
+
+.tool_autoflow-inspector-empty {
+    margin: .75rem 0 0;
+}
+
+.tool_autoflow-inspector .form-label {
+    margin-bottom: .25rem;
+    font-weight: 600;
+    font-size: .9rem;
+}
+
+.tool_autoflow-inspector select {
+    display: block;
+    width: 100%;
+}
+
+.tool_autoflow-inspector .is-required::after {
+    content: " *";
+    color: #ca3120;
+}
+
+.tool_autoflow-problems {
+    margin-top: 1rem;
+}
+
+.tool_autoflow-problems h4 {
+    margin-top: 0;
+    color: inherit;
+}
+
+.tool_autoflow-problems ul {
+    margin: 0;
+}
+
+@media (max-width: 991px) {
+    .tool_autoflow-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* React Flow's attribution link is #999 on white by default, under the WCAG AA contrast ratio. */
+.tool_autoflow-editor .react-flow__attribution a {
+    color: var(--af-muted);
+}

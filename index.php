@@ -58,31 +58,9 @@ if ($action === 'delete') {
     die();
 }
 
-$fields = 'id, name, enabled, triggertype, runasuserid, timemodified';
-$workflows = $DB->get_records('tool_autoflow_workflow', null, 'name ASC', $fields);
-// Not user_get_users_by_id(): it is deprecated in 5.3 and its replacement does not exist in 4.5.
-$runasusers = $DB->get_records_list('user', 'id', array_filter(array_column($workflows, 'runasuserid')));
-$lastruns = $DB->get_records_sql('SELECT workflowid, MAX(timecreated) AS lastrun FROM {tool_autoflow_run} GROUP BY workflowid');
-$strings = get_string_manager();
-$templatecontext = [
-    'newurl' => (new moodle_url('/admin/tool/autoflow/edit.php'))->out(false),
-    'hasworkflows' => !empty($workflows),
-    'workflows' => array_values(array_map(fn($w) => [
-        'id' => $w->id,
-        'name' => format_string($w->name),
-        'enabled' => (bool) $w->enabled,
-        'trigger' => $strings->string_exists('node:' . $w->triggertype, 'tool_autoflow')
-            ? get_string('node:' . $w->triggertype, 'tool_autoflow') : '',
-        'runas' => isset($runasusers[$w->runasuserid]) ? fullname($runasusers[$w->runasuserid]) : '',
-        'lastrun' => isset($lastruns[$w->id]) ? userdate($lastruns[$w->id]->lastrun) : get_string('never', 'tool_autoflow'),
-        'editurl' => (new moodle_url('/admin/tool/autoflow/edit.php', ['id' => $w->id]))->out(false),
-        'runsurl' => (new moodle_url('/admin/tool/autoflow/runs.php', ['id' => $w->id]))->out(false),
-        'runurl' => (new moodle_url($url, ['action' => 'run', 'id' => $w->id, 'sesskey' => sesskey()]))->out(false),
-        'deleteurl' => (new moodle_url($url, ['action' => 'delete', 'id' => $w->id]))->out(false),
-    ], $workflows)),
-];
+$list = new \tool_autoflow\output\workflow_list(time());
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('workflows', 'tool_autoflow'));
-echo $OUTPUT->render_from_template('tool_autoflow/workflow_list', $templatecontext);
+echo $OUTPUT->render_from_template('tool_autoflow/workflow_list', $list->export_for_template($OUTPUT));
 echo $OUTPUT->footer();

@@ -58,9 +58,32 @@ export interface SaveResult {
   runasname?: string;
 }
 
+/** A user found by the run-as search. */
+export interface FoundUser {
+  id: number;
+  fullname: string;
+  /** Identity fields the viewer may see, such as the email address. */
+  identity: string;
+}
+
+export interface UserSearchResult {
+  users: FoundUser[];
+  /** More users matched than were returned. */
+  overflow: boolean;
+}
+
+export type UserSearch = (query: string) => Promise<UserSearchResult>;
+
+/** The user a workflow runs as. */
+export interface RunAs {
+  id: number;
+  name: string;
+}
+
 /** What the editor needs from the server. Tests pass a fake. */
 export interface Client {
   load(workflowid: number): Promise<EditorData>;
   save(request: SaveRequest): Promise<SaveResult>;
   run(workflowid: number): Promise<boolean>;
+  searchUsers: UserSearch;
 }

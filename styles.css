@@ -212,3 +212,23 @@
     border-radius: .25rem;
     background-color: #f8f9fa;
 }
+
+/* Workflow list. */
+.tool_autoflow-table td {
+    vertical-align: middle;
+}
+
+.tool_autoflow-name-link {
+    font-weight: 600;
+}
+
+.tool_autoflow-lastrun {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    color: inherit;
+}
+
+.tool_autoflow-actions {
+    white-space: nowrap;
+}

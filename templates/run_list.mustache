@@ -25,7 +25,7 @@
     * hasfilters - bool
     * runs - list of {id, status, statuslabel, badge, failed, trigger, hasuser, user, picture, ago, time,
       error, showerror, open, hassteps,
-      steps: [{node, type, label, failed, statuslabel, error, branch, fields: [{name, value}], hasfields, raw}]}
+      steps: [{node, type, label, failed, statuslabel, error, branch, fields: [{name, value}], hasfields, hasraw, raw}]}
     * hasruns - bool
     * emptymessage - text shown when there are no runs
 
@@ -45,10 +45,10 @@
              "open": true, "hassteps": true,
              "steps": [
                 {"node": "c", "type": "logic.condition", "label": "Condition", "failed": false, "statuslabel": "Done",
-                 "error": "", "branch": "Result: Yes", "fields": [{"name": "result", "value": "true"}], "hasfields": true,
+                 "error": "", "branch": "Result: Yes", "fields": [{"name": "result", "value": "true"}], "hasfields": true, "hasraw": true,
                  "raw": "{\"result\": true}"},
                 {"node": "h", "type": "action.http", "label": "Send an HTTP request", "failed": true,
-                 "statuslabel": "Failed", "error": "The URL is blocked.", "branch": "", "fields": [], "hasfields": false,
+                 "statuslabel": "Failed", "error": "The URL is blocked.", "branch": "", "fields": [], "hasfields": false, "hasraw": false,
                  "raw": ""}
              ]}
         ]
@@ -75,7 +75,7 @@
             <span class="{{badge}}">{{statuslabel}}</span>
             <span class="tool_autoflow-run-trigger">{{trigger}}</span>
             {{#hasuser}}
-            <span class="tool_autoflow-run-user"><span class="tool_autoflow-sr">{{#str}}run:about, tool_autoflow{{/str}}</span>{{{picture}}} {{user}}</span>
+            <span class="tool_autoflow-run-user"><span class="tool_autoflow-sr">{{#str}}run:about, tool_autoflow{{/str}}</span><span aria-hidden="true">{{{picture}}}</span> {{user}}</span>
             {{/hasuser}}
             <span class="tool_autoflow-run-time"><span class="tool_autoflow-sr">{{#str}}run:started, tool_autoflow{{/str}}</span><time title="{{time}}">{{ago}}</time></span>
         </summary>
@@ -97,11 +97,13 @@
                         <dl class="tool_autoflow-fields">
                             {{#fields}}<div><dt>{{name}}</dt><dd>{{value}}</dd></div>{{/fields}}
                         </dl>
+                        {{/hasfields}}
+                        {{#hasraw}}
                         <details class="tool_autoflow-raw">
                             <summary>{{#str}}rawdata, tool_autoflow{{/str}}</summary>
                             <pre>{{raw}}</pre>
                         </details>
-                        {{/hasfields}}
+                        {{/hasraw}}
                     </div>
                 </li>
                 {{/steps}}

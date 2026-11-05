@@ -28,7 +28,7 @@ const strings: Record<string, string> = {
   save: 'Save', saved: 'Saved', runnow: 'Run now', runqueued: 'Run queued', enabled: 'Enabled', workflowname: 'Workflow name',
   palette: 'Add a node', nodesettings: 'Node settings', selectnode: 'Select a node', deletenode: 'Delete node', problems: 'Problems',
   saving: 'Saving...', savefailed: 'Could not save', 'branch:true': 'Yes', 'branch:false': 'No', choose: 'Choose...',
-  workflowruns: 'Run history', runsas: 'Runs as', runasuserid: 'Runs as (user id)', invalidjson: 'Not valid JSON yet', 'cat:trigger': 'Triggers', 'cat:logic': 'Logic', 'cat:action': 'Actions', 'cat:moodle': 'Moodle',
+  workflowruns: 'Run history', runsas: 'Runs as', searchusers: 'Search by name or email', nousersfound: 'No users match.', moreusers: 'More', emptycanvas: 'Add a trigger to start', invalidjson: 'Not valid JSON yet', 'cat:trigger': 'Triggers', 'cat:logic': 'Logic', 'cat:action': 'Actions', 'cat:moodle': 'Moodle',
 };
 
 const data = (overrides: Partial<EditorData> = {}): EditorData => ({
@@ -41,6 +41,7 @@ const fakeClient = (loaded: EditorData = data()) => ({
   load: vi.fn().mockResolvedValue(loaded),
   save: vi.fn().mockResolvedValue({ id: 7, enabled: true, errors: [] }),
   run: vi.fn().mockResolvedValue(true),
+  searchUsers: vi.fn().mockResolvedValue({ users: [{ id: 9, fullname: 'Sam Student', identity: 'sam@example.edu' }], overflow: false }),
 }) satisfies Client;
 
 const renderApp = async (client: Client = fakeClient(), workflowid = 0) => {
@@ -128,31 +129,61 @@ describe('App', () => {
     const user = userEvent.setup();
     const client = await renderApp();
     expect(screen.getByTestId('runas')).toHaveTextContent('Runs as Admin User');
-    expect(screen.queryByLabelText('Runs as (user id)')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Runs as' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Saved');
     expect((client.save as ReturnType<typeof vi.fn>).mock.calls[0][0].runasuserid).toBe(0);
   });
 
-  it('lets someone with login as pick the run-as user', async () => {
+  it('lets someone with login as pick the run-as user by name', async () => {
     const user = userEvent.setup();
     const client = fakeClient(data({ canchooserunas: true, runasuserid: 5, runasname: 'Tess Teacher' }));
     client.save.mockResolvedValue({ id: 7, enabled: true, errors: [], runasuserid: 9, runasname: 'Sam Student' });
     await renderApp(client);
-    const field = screen.getByLabelText('Runs as (user id)');
-    expect(field).toHaveValue(5);
-    expect(screen.getByTestId('runas')).toHaveTextContent('Tess Teacher');
-    await user.clear(field);
-    await user.type(field, '9');
+    const field = screen.getByRole('combobox', { name: 'Runs as' });
+    expect(field).toHaveValue('Tess Teacher');
+    expect(screen.queryByTestId('runas')).not.toBeInTheDocument();
+
+    // Saving untouched keeps the loaded user.
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Saved');
-    expect((client.save as ReturnType<typeof vi.fn>).mock.calls[0][0].runasuserid).toBe(9);
-    expect(screen.getByTestId('runas')).toHaveTextContent('Sam Student');
+    expect((client.save as ReturnType<typeof vi.fn>).mock.calls[0][0].runasuserid).toBe(5);
+    expect(field).toHaveValue('Sam Student');
 
-    // A blank field means the person saving.
     await user.clear(field);
+    await user.type(field, 'sam');
+    await user.click(await screen.findByRole('option', { name: /Sam Student/ }));
+    expect(client.searchUsers).toHaveBeenCalledWith('sam');
     await user.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect((client.save as ReturnType<typeof vi.fn>).mock.calls[1][0].runasuserid).toBe(0));
+    await waitFor(() => expect((client.save as ReturnType<typeof vi.fn>).mock.calls[1][0].runasuserid).toBe(9));
+  });
+
+  it('keeps the run-as name when the save reply leaves it out', async () => {
+    const user = userEvent.setup();
+    const client = fakeClient(data({ canchooserunas: true }));
+    client.save.mockResolvedValue({ id: 7, enabled: true, errors: [], runasuserid: 3 });
+    await renderApp(client);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect(screen.getByRole('combobox', { name: 'Runs as' })).toHaveValue('');
+  });
+
+  it('shows a hint on an empty canvas only', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+    expect(screen.getByText('Add a trigger to start')).toBeInTheDocument();
+    await user.click(screen.getByTestId('palette-trigger.manual'));
+    expect(screen.queryByText('Add a trigger to start')).not.toBeInTheDocument();
+  });
+
+  it('colours nodes and palette entries by category and explains the selected type', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+    expect(screen.getByTestId('palette-action.log')).toHaveClass('is-action');
+    await user.click(screen.getByTestId('palette-action.log'));
+    expect(screen.getByTestId('node-action_log_1')).toHaveClass('is-action');
+    const inspector = screen.getByRole('complementary', { name: 'Node settings' });
+    expect(within(inspector).getByText('Logs it')).toBeInTheDocument();
   });
 
   it('shows a save failure', async () => {
@@ -257,8 +288,8 @@ describe('App', () => {
   it('marks the selected node and moves the selection', async () => {
     await renderApp(fakeClient(data({ id: 1, graph: validGraph })), 1);
     fireEvent.click(screen.getByTestId('node-a'));
-    expect(screen.getByTestId('node-a')).toHaveClass('tool_autoflow-node is-selected', { exact: true });
-    expect(screen.getByTestId('node-b')).toHaveClass('tool_autoflow-node', { exact: true });
+    expect(screen.getByTestId('node-a')).toHaveClass('tool_autoflow-node is-action is-selected', { exact: true });
+    expect(screen.getByTestId('node-b')).toHaveClass('tool_autoflow-node is-action', { exact: true });
     fireEvent.click(screen.getByTestId('node-b'));
     expect(screen.getByTestId('node-a')).not.toHaveClass('is-selected');
     expect(screen.getByLabelText('MESSAGE')).toHaveValue('two');
