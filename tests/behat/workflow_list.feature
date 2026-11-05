@@ -4,11 +4,13 @@ Feature: Workflow list
   As a manager
   I need to see the workflows on the site
 
+  @javascript @accessibility
   Scenario: An admin sees the empty state
     Given I log in as "admin"
     When I navigate to "Plugins > Admin tools > Autoflow" in site administration
     Then I should see "Workflows" in the "#region-main" "css_element"
     And I should see "No workflows yet"
+    And the page should meet accessibility standards
 
   Scenario: A manager without site config can open the page
     Given the following "users" exist:

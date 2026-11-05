@@ -17,40 +17,101 @@
 {{!
     @template tool_autoflow/run_list
 
-    Run history of one workflow, newest first, with each step's output or error.
+    Run history of one workflow, newest first. Each run lists its steps by name with their result;
+    the raw output of a step sits behind a "Raw data" toggle.
 
     Context variables required for this template:
+    * filters - list of {name, label, count, url, active}
+    * hasfilters - bool
+    * runs - list of {id, status, statuslabel, badge, failed, trigger, hasuser, user, picture, ago, time,
+      error, showerror, open, hassteps,
+      steps: [{node, type, label, failed, statuslabel, error, branch, fields: [{name, value}], hasfields, raw}]}
     * hasruns - bool
-    * runs - list of {id, status, statuslabel, success, trigger, time, error, steps: [{node, type, status, detail}]}
+    * emptymessage - text shown when there are no runs
 
     Example context (json):
     {
+        "hasfilters": true,
+        "filters": [
+            {"name": "all", "label": "All", "count": 2, "url": "#", "active": true},
+            {"name": "failed", "label": "Failed", "count": 1, "url": "#", "active": false}
+        ],
         "hasruns": true,
+        "emptymessage": "",
         "runs": [
-            {"id": 3, "status": "success", "statuslabel": "Succeeded", "success": true, "trigger": "manual",
-             "time": "1 November 2026, 9:00 AM", "error": "",
-             "steps": [{"node": "log", "type": "action.log", "status": "ok", "detail": "{\"message\": \"Hello\"}"}]}
+            {"id": 3, "status": "failed", "statuslabel": "Failed", "badge": "badge bg-danger text-white", "failed": true,
+             "trigger": "Event: Course completed", "hasuser": true, "user": "Ines Bel", "picture": "",
+             "ago": "3 hours ago", "time": "5 November 2026, 9:00 AM", "error": "", "showerror": false,
+             "open": true, "hassteps": true,
+             "steps": [
+                {"node": "c", "type": "logic.condition", "label": "Condition", "failed": false, "statuslabel": "Done",
+                 "error": "", "branch": "Result: Yes", "fields": [{"name": "result", "value": "true"}], "hasfields": true,
+                 "raw": "{\"result\": true}"},
+                {"node": "h", "type": "action.http", "label": "Send an HTTP request", "failed": true,
+                 "statuslabel": "Failed", "error": "The URL is blocked.", "branch": "", "fields": [], "hasfields": false,
+                 "raw": ""}
+             ]}
         ]
     }
 }}
 <div class="tool_autoflow-runs" data-region="run-list">
+    {{#hasfilters}}
+    <nav aria-label="{{#str}}filter, tool_autoflow{{/str}}">
+        <ul class="nav nav-pills mb-3">
+            {{#filters}}
+            <li class="nav-item">
+                <a class="nav-link{{#active}} active{{/active}}" href="{{url}}" {{#active}}aria-current="page"{{/active}}
+                   data-filter="{{name}}">{{label}} <span class="tool_autoflow-count">{{count}}</span></a>
+            </li>
+            {{/filters}}
+        </ul>
+    </nav>
+    {{/hasfilters}}
     {{#hasruns}}
     {{#runs}}
-    <details class="mb-2 border rounded p-2" data-runid="{{id}}" data-status="{{status}}" data-testid="run">
-        <summary>
-            <span class="badge text-white {{#success}}badge-success bg-success{{/success}}{{^success}}badge-danger bg-danger{{/success}}">{{statuslabel}}</span>
-            {{time}} &middot; {{trigger}}
+    <details class="tool_autoflow-run{{#failed}} is-failed{{/failed}}" data-runid="{{id}}" data-status="{{status}}"
+             data-testid="run"{{#open}} open{{/open}}>
+        <summary class="tool_autoflow-run-head">
+            <span class="{{badge}}">{{statuslabel}}</span>
+            <span class="tool_autoflow-run-trigger">{{trigger}}</span>
+            {{#hasuser}}
+            <span class="tool_autoflow-run-user"><span class="tool_autoflow-sr">{{#str}}run:about, tool_autoflow{{/str}}</span>{{{picture}}} {{user}}</span>
+            {{/hasuser}}
+            <span class="tool_autoflow-run-time"><span class="tool_autoflow-sr">{{#str}}run:started, tool_autoflow{{/str}}</span><time title="{{time}}">{{ago}}</time></span>
         </summary>
-        {{#error}}<p class="text-danger mt-2">{{error}}</p>{{/error}}
-        <ol class="mt-2">
-            {{#steps}}
-            <li><code>{{node}}</code> {{type}} ({{status}})<pre class="small mb-1">{{detail}}</pre></li>
-            {{/steps}}
-        </ol>
+        <div class="tool_autoflow-run-body">
+            {{#showerror}}<div class="alert alert-danger mb-3">{{error}}</div>{{/showerror}}
+            {{#hassteps}}
+            <ol class="tool_autoflow-steps">
+                {{#steps}}
+                <li class="tool_autoflow-step{{#failed}} is-failed{{/failed}}" data-node="{{node}}" data-type="{{type}}">
+                    <span class="tool_autoflow-step-icon" aria-hidden="true"></span>
+                    <div class="tool_autoflow-step-main">
+                        <div class="tool_autoflow-step-title">
+                            <span class="tool_autoflow-step-label">{{label}}</span>
+                            <span class="tool_autoflow-step-status">{{statuslabel}}</span>
+                            {{#branch}}<span class="badge bg-light text-dark border">{{branch}}</span>{{/branch}}
+                        </div>
+                        {{#error}}<p class="tool_autoflow-step-error">{{error}}</p>{{/error}}
+                        {{#hasfields}}
+                        <dl class="tool_autoflow-fields">
+                            {{#fields}}<div><dt>{{name}}</dt><dd>{{value}}</dd></div>{{/fields}}
+                        </dl>
+                        <details class="tool_autoflow-raw">
+                            <summary>{{#str}}rawdata, tool_autoflow{{/str}}</summary>
+                            <pre>{{raw}}</pre>
+                        </details>
+                        {{/hasfields}}
+                    </div>
+                </li>
+                {{/steps}}
+            </ol>
+            {{/hassteps}}
+        </div>
     </details>
     {{/runs}}
     {{/hasruns}}
     {{^hasruns}}
-    <p class="alert alert-info">{{#str}}never, tool_autoflow{{/str}}</p>
+    <p class="alert alert-info">{{emptymessage}}</p>
     {{/hasruns}}
 </div>

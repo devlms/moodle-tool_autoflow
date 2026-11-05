@@ -33,32 +33,18 @@ admin_externalpage_setup('tool_autoflow', '', null, new moodle_url('/admin/tool/
 $workflow = \tool_autoflow\local\workflow_store::get($id);
 $PAGE->navbar->add(format_string($workflow->name));
 
+$status = optional_param('status', 'all', PARAM_ALPHA);
 $runs = $DB->get_records('tool_autoflow_run', ['workflowid' => $id], 'timecreated DESC, id DESC', '*', 0, 100);
-$strings = get_string_manager();
-$templatecontext = [
-    'hasruns' => !empty($runs),
-    'runs' => array_values(array_map(fn($r) => [
-        'id' => $r->id,
-        'status' => $r->status,
-        'statuslabel' => $strings->string_exists('status:' . $r->status, 'tool_autoflow')
-            ? get_string('status:' . $r->status, 'tool_autoflow') : $r->status,
-        'success' => $r->status === 'success',
-        'trigger' => $r->triggertype,
-        'time' => userdate($r->timecreated),
-        'error' => $r->error,
-        'steps' => array_map(fn($s) => [
-            'node' => $s['node'],
-            'type' => $s['type'],
-            'status' => $s['status'],
-            'detail' => json_encode(
-                $s['status'] === 'ok' ? $s['output'] ?? [] : $s['error'] ?? '',
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            ),
-        ], json_decode($r->log ?? '[]', true) ?: []),
-    ], $runs)),
-];
+$list = new \tool_autoflow\output\run_list($workflow, $runs, $status, time());
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('workflowruns', 'tool_autoflow') . ': ' . format_string($workflow->name));
-echo $OUTPUT->render_from_template('tool_autoflow/run_list', $templatecontext);
+if (has_capability('tool/autoflow:manage', context_system::instance())) {
+    echo html_writer::div(html_writer::link(
+        new moodle_url('/admin/tool/autoflow/edit.php', ['id' => $id]),
+        get_string('editworkflow', 'tool_autoflow'),
+        ['class' => 'btn btn-secondary']
+    ), 'mb-3');
+}
+echo $OUTPUT->render_from_template('tool_autoflow/run_list', $list->export_for_template($OUTPUT));
 echo $OUTPUT->footer();

@@ -11,6 +11,7 @@ Feature: Run, inspect and delete workflows from the list
     And I log in as "admin"
     And I navigate to "Plugins > Admin tools > Autoflow" in site administration
 
+  @javascript @accessibility
   Scenario: Run a workflow now and read the run log
     When I click on "Run now" "link" in the "Morning check" "table_row"
     Then I should see "Run queued. It starts with the next cron run."
@@ -19,7 +20,12 @@ Feature: Run, inspect and delete workflows from the list
     And I click on "Runs" "link" in the "Morning check" "table_row"
     And I should see "Run history: Morning check"
     And I should see "Succeeded"
+    And I should see "Started by hand"
+    And I should see "Write to run log"
     And I should see "All good at"
+    And the page should meet accessibility standards
+    And I click on "Failed" "link" in the "nav[aria-label='Show runs']" "css_element"
+    And I should see "No runs match this filter."
 
   Scenario: Delete a workflow after confirming
     When I click on "Delete" "link" in the "Morning check" "table_row"
