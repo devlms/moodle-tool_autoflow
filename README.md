@@ -10,6 +10,7 @@
 [![Moodle](https://img.shields.io/badge/Moodle-4.5%20to%205.3-f98012)](https://moodledev.io/general/releases)
 [![PHP](https://img.shields.io/badge/PHP-8.1%20to%208.4-777bb4)](https://www.php.net/supported-versions.php)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL%20v3-blue)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-this%20plugin-2438ff)](https://devlms.com/sponsors/?plugin=tool_autoflow)
 [![Release](https://img.shields.io/github/v/release/devlms/moodle-tool_autoflow?include_prereleases)](https://github.com/devlms/moodle-tool_autoflow/releases)
 [![Maturity](https://img.shields.io/badge/maturity-stable-green)](version.php)
 
@@ -141,6 +142,12 @@ MOODLE_URL=http://localhost:8000 MOODLE_ADMIN_PASS=... \
 ## Contributing
 
 Issues and pull requests are welcome. New code comes with tests, and the mutation scores should not drop.
+
+## Sponsors
+
+<!-- sponsors:start -->
+No sponsors yet. [Sponsor this plugin](https://devlms.com/sponsors/?plugin=tool_autoflow): your name or logo, with a link to your site, goes here and on [devlms.com/sponsors](https://devlms.com/sponsors/).
+<!-- sponsors:end -->
 
 ## License
 
