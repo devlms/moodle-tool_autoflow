@@ -149,7 +149,7 @@ final class http_request_node implements node_type {
         $url = trim((string) ($params['url'] ?? ''));
         $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
         if (!in_array($scheme, ['http', 'https'], true) || !parse_url($url, PHP_URL_HOST)) {
-            throw new node_failed("The URL must start with http or https: \"$url\".");
+            throw new node_failed('The URL must start with http or https: "' . self::safe_url($url) . '".');
         }
         $body = $params['body'] ?? [];
         if (is_string($body) && trim($body) === '') {
@@ -170,7 +170,7 @@ final class http_request_node implements node_type {
             ? $curl->get($url)
             : $curl->post($url, $payload, ['CURLOPT_CUSTOMREQUEST' => strtoupper($method)]);
         if (!empty($curl->error)) {
-            throw new node_failed("$url could not be reached: {$curl->error}");
+            throw new node_failed(self::safe_url($url) . " could not be reached: {$curl->error}");
         }
         $status = (int) ($curl->info['http_code'] ?? 0);
         $response = (string) $response;
@@ -179,7 +179,7 @@ final class http_request_node implements node_type {
             $response = substr($response, 0, self::MAX_BYTES);
         }
         if ($status >= 400 || $status === 0) {
-            throw new node_failed("$url answered $status: " . shorten_text($response, 200));
+            throw new node_failed(self::safe_url($url) . " answered $status: " . shorten_text($response, 200));
         }
         $json = json_decode($response, true);
         return new node_result([
@@ -188,5 +188,20 @@ final class http_request_node implements node_type {
             'json' => is_array($json) ? $json : null,
             'truncated' => $truncated,
         ]);
+    }
+
+    /**
+     * A URL for messages and logs: no query string or fragment, which often carry keys, and no user info.
+     *
+     * @param string $url
+     * @return string
+     */
+    public static function safe_url(string $url): string {
+        $parts = parse_url($url);
+        if (!$parts || empty($parts['host'])) {
+            return strtok($url, '?#') ?: '';
+        }
+        return ($parts['scheme'] ?? 'http') . '://' . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '')
+            . ($parts['path'] ?? '') . (isset($parts['query']) ? '?...' : '');
     }
 }

@@ -76,6 +76,37 @@ final class runner_test extends \advanced_testcase {
         $this->assertEquals($user->id, reset($tasks)->get_userid());
     }
 
+    public function test_a_workflow_without_a_usable_run_as_user_never_runs_as_the_admin(): void {
+        global $DB;
+        $id = self::workflow();
+        $DB->set_field('tool_autoflow_workflow', 'runasuserid', null, ['id' => $id]);
+        $this->assertFalse(runner::queue($id, [], 'event'));
+        $this->assertCount(0, \core\task\manager::get_adhoc_tasks(run_workflow::class));
+        $this->assertEquals(0, $DB->get_field('tool_autoflow_workflow', 'enabled', ['id' => $id]));
+        $run = $DB->get_record('tool_autoflow_run', ['workflowid' => $id], '*', MUST_EXIST);
+        $this->assertSame('failed', $run->status);
+        $this->assertSame(get_string('error:norunas', 'tool_autoflow'), $run->error);
+
+        // A suspended run-as user stops it too.
+        $user = $this->getDataGenerator()->create_user(['suspended' => 1]);
+        $other = self::workflow();
+        $DB->set_field('tool_autoflow_workflow', 'runasuserid', $user->id, ['id' => $other]);
+        $this->assertFalse(runner::queue($other, [], 'event'));
+        $this->assertCount(0, \core\task\manager::get_adhoc_tasks(run_workflow::class));
+    }
+
+    public function test_old_runs_are_cleaned_up(): void {
+        global $DB;
+        $id = self::workflow();
+        foreach ([200, 10] as $daysago) {
+            $DB->insert_record('tool_autoflow_run', ['workflowid' => $id, 'status' => 'success', 'triggertype' => 'manual',
+                'log' => '[]', 'timecreated' => time() - $daysago * DAYSECS, 'timefinished' => time()]);
+        }
+        $this->expectOutputRegex('/deleted 1 runs older than 90 days/');
+        (new \tool_autoflow\task\cleanup_runs())->execute();
+        $this->assertSame(1, $DB->count_records('tool_autoflow_run', ['workflowid' => $id]));
+    }
+
     public function test_running_the_task_records_a_successful_run(): void {
         global $DB;
         $student = $this->getDataGenerator()->create_user();

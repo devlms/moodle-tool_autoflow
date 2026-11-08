@@ -53,13 +53,43 @@ final class runner {
         if ($depth > self::MAX_DEPTH) {
             return false;
         }
-        $runas = $DB->get_field('tool_autoflow_workflow', 'runasuserid', ['id' => $workflowid]);
+        $runas = (int) $DB->get_field('tool_autoflow_workflow', 'runasuserid', ['id' => $workflowid]);
+        // Never fall back to the site admin: a workflow whose run-as user is gone, suspended or was removed
+        // by a privacy request stops, with a failed run on record, until someone picks a new user.
+        $user = $runas ? \core_user::get_user($runas, 'id, deleted, suspended') : false;
+        if (!$user || $user->deleted || $user->suspended) {
+            self::refuse($workflowid, $trigger, $triggertype);
+            return false;
+        }
         $task = new run_workflow();
         $task->set_custom_data(['workflowid' => $workflowid, 'trigger' => $trigger, 'triggertype' => $triggertype,
             'depth' => $depth]);
-        $task->set_userid($runas ?: get_admin()->id);
+        $task->set_userid($runas);
         \core\task\manager::queue_adhoc_task($task);
         return true;
+    }
+
+    /**
+     * Record a failed run for a workflow that has no usable run-as user, and turn it off.
+     *
+     * @param int $workflowid
+     * @param array $trigger
+     * @param string $triggertype
+     */
+    private static function refuse(int $workflowid, array $trigger, string $triggertype): void {
+        global $DB;
+        $now = time();
+        $DB->insert_record('tool_autoflow_run', (object) [
+            'workflowid' => $workflowid,
+            'status' => 'failed',
+            'triggertype' => $triggertype,
+            'userid' => self::trigger_user($trigger),
+            'log' => '[]',
+            'error' => get_string('error:norunas', 'tool_autoflow'),
+            'timecreated' => $now,
+            'timefinished' => $now,
+        ]);
+        $DB->set_field('tool_autoflow_workflow', 'enabled', 0, ['id' => $workflowid]);
     }
 
     /**
@@ -106,6 +136,11 @@ final class runner {
             $run->status = 'failed';
             $run->log = '[]';
             $run->error = $e->getMessage();
+        } catch (\Throwable $e) {
+            // Record it and stop: a rethrow would make cron retry the task and repeat earlier steps.
+            $run->status = 'failed';
+            $run->log = $run->log ?? '[]';
+            $run->error = get_class($e) . ': ' . $e->getMessage();
         } finally {
             self::$depth = $previous;
         }

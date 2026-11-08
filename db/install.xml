@@ -14,7 +14,7 @@
         <FIELD NAME="triggertype" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Type of the trigger node, copied from the graph on save"/>
         <FIELD NAME="triggerdata" TYPE="char" LENGTH="1333" NOTNULL="true" SEQUENCE="false" COMMENT="Event class name or cron expression, copied from the trigger node on save"/>
         <FIELD NAME="lastscheduled" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When the schedule trigger last queued a run"/>
-        <FIELD NAME="runasuserid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="User the workflow runs as. Null means the admin user."/>
+        <FIELD NAME="runasuserid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="User the workflow runs as. Null means nobody: the workflow does not run."/>
         <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

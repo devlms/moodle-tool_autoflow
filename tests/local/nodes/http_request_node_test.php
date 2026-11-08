@@ -195,4 +195,12 @@ final class http_request_node_test extends \advanced_testcase {
             new param('body', 'json', false),
         ], $node->params());
     }
+
+    public function test_urls_in_errors_drop_keys_and_user_info(): void {
+        $this->assertSame(
+            'https://api.example.com/v1/x?...',
+            \tool_autoflow\local\nodes\http_request_node::safe_url('https://user:pw@api.example.com/v1/x?key=secret#f')
+        );
+        $this->assertSame('http://h:8080/p', \tool_autoflow\local\nodes\http_request_node::safe_url('http://h:8080/p'));
+    }
 }

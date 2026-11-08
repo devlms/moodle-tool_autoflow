@@ -110,7 +110,7 @@ class provider implements
                 'tool_autoflow_run',
                 ['userid' => $userid],
                 'id ASC',
-                'id, workflowid, status, triggertype, timecreated'
+                'id, workflowid, status, triggertype, log, error, timecreated'
             );
             $workflows = $DB->get_records_select(
                 'tool_autoflow_workflow',
@@ -124,6 +124,8 @@ class provider implements
                     'workflowid' => $r->workflowid,
                     'status' => $r->status,
                     'trigger' => $r->triggertype,
+                    'log' => json_decode((string) $r->log, true),
+                    'error' => (string) $r->error,
                     'timecreated' => transform::datetime($r->timecreated),
                 ], $runs)),
                 'workflows' => array_values(array_map(fn($w) => [
@@ -147,7 +149,8 @@ class provider implements
         }
         $DB->delete_records('tool_autoflow_run');
         $DB->set_field('tool_autoflow_workflow', 'usermodified', 0);
-        $DB->set_field_select('tool_autoflow_workflow', 'runasuserid', null, 'runasuserid IS NOT NULL');
+        // A workflow without a run-as user cannot run, so it is turned off rather than left to fail.
+        $DB->execute('UPDATE {tool_autoflow_workflow} SET runasuserid = NULL, enabled = 0 WHERE runasuserid IS NOT NULL');
     }
 
     /**
@@ -204,6 +207,6 @@ class provider implements
         [$insql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
         $DB->delete_records_select('tool_autoflow_run', "userid $insql", $params);
         $DB->set_field_select('tool_autoflow_workflow', 'usermodified', 0, "usermodified $insql", $params);
-        $DB->set_field_select('tool_autoflow_workflow', 'runasuserid', null, "runasuserid $insql", $params);
+        $DB->execute("UPDATE {tool_autoflow_workflow} SET runasuserid = NULL, enabled = 0 WHERE runasuserid $insql", $params);
     }
 }

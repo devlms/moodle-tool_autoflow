@@ -28,8 +28,14 @@ require_once($CFG->libdir . '/adminlib.php');
 $id = required_param('id', PARAM_INT);
 
 require_login();
-require_capability('tool/autoflow:viewruns', context_system::instance());
-admin_externalpage_setup('tool_autoflow', '', null, new moodle_url('/admin/tool/autoflow/runs.php', ['id' => $id]));
+$context = context_system::instance();
+require_capability('tool/autoflow:viewruns', $context);
+// Not admin_externalpage_setup(): that page needs tool/autoflow:manage, and viewing runs must not.
+$PAGE->set_context($context);
+$PAGE->set_url(new moodle_url('/admin/tool/autoflow/runs.php', ['id' => $id]));
+$PAGE->set_pagelayout('admin');
+$PAGE->set_title(get_string('workflowruns', 'tool_autoflow'));
+$PAGE->set_heading(get_string('pluginname', 'tool_autoflow'));
 $workflow = \tool_autoflow\local\workflow_store::get($id);
 $PAGE->navbar->add(format_string($workflow->name));
 

@@ -65,7 +65,8 @@ class workflow_list implements renderable, templatable {
             $last = $lastruns[$w->id] ?? null;
             $rows[] = [
                 'id' => (int) $w->id,
-                'name' => format_string($w->name),
+                // Unescaped here: the template escapes once.
+                'name' => format_string($w->name, true, ['escape' => false]),
                 'enabled' => (bool) $w->enabled,
                 'statuslabel' => get_string($w->enabled ? 'enabled' : 'disabled', 'admin'),
                 'statusbadge' => 'badge ' . ($w->enabled ? 'bg-success text-white' : 'bg-secondary text-dark'),
