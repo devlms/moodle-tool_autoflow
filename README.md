@@ -13,10 +13,11 @@
 [![Sponsor](https://img.shields.io/badge/sponsor-this%20plugin-2438ff)](https://devlms.com/sponsors/?plugin=tool_autoflow)
 [![Release](https://img.shields.io/github/v/release/devlms/moodle-tool_autoflow?include_prereleases)](https://github.com/devlms/moodle-tool_autoflow/releases)
 [![Maturity](https://img.shields.io/badge/maturity-stable-green)](version.php)
+[![Moodle Marketplace](https://img.shields.io/badge/Moodle%20Marketplace-tool__autoflow-f98012)](https://marketplace.moodle.com/plugins/tool_autoflow)
 
 Build Moodle automations as workflows in a node editor, instead of writing a new plugin for every one.
 
-> **Status: alpha.** Workflows can be built, saved and run, and every layer is tested. The node library is still small. Try it on a test site, not a production one.
+> **Status: stable (1.0.0).** Workflows can be built, saved and run, and every layer is tested on Moodle 4.5 to 5.3. More nodes are planned. Install it from the [Moodle Marketplace](https://marketplace.moodle.com/plugins/tool_autoflow) or from the [releases](https://github.com/devlms/moodle-tool_autoflow/releases).
 
 ![The workflow editor: an event trigger, a condition, then enrol, add to group, notify and an HTTP request](docs/screenshots/editor.png)
 
